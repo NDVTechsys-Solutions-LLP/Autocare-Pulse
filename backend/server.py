@@ -111,6 +111,8 @@ class IncidentCreate(BaseModel):
     vehicle_vin: Optional[str] = ""
     source: str = "manual"  # manual | voice
     photo_paths: List[str] = []
+    dealership_id: Optional[str] = None
+    dealership_name: Optional[str] = None
 
 
 class IncidentUpdate(BaseModel):
@@ -340,7 +342,7 @@ async def dealer_login(body: DealerLogin):
     if not dealer or not bcrypt.checkpw(body.password.encode(), dealer["password_hash"].encode()):
         raise HTTPException(status_code=401, detail="Invalid email or password")
     token = pyjwt.encode({"dealer_id": dealer["dealer_id"], "exp": now_utc() + timedelta(days=7)}, JWT_SECRET, algorithm="HS256")
-    return {"token": token, "dealer": {"dealer_id": dealer["dealer_id"], "email": dealer["email"], "name": dealer["name"], "role": dealer["role"]}}
+    return {"token": token, "dealer": {"dealer_id": dealer["dealer_id"], "email": dealer["email"], "name": dealer["name"], "role": dealer["role"], "dealership_id": dealer.get("dealership_id"), "dealership_name": dealer.get("dealership_name")}}
 
 
 @api_router.get("/auth/dealer/me")
@@ -384,6 +386,37 @@ async def transcribe(file: UploadFile = File(...), user=Depends(get_current_user
     return {"text": getattr(resp, "text", "")}
 
 
+import math
+
+
+def haversine(lat1, lng1, lat2, lng2):
+    r = 6371.0
+    p1, p2 = math.radians(lat1), math.radians(lat2)
+    dphi = math.radians(lat2 - lat1)
+    dl = math.radians(lng2 - lng1)
+    a = math.sin(dphi / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
+    return 2 * r * math.asin(math.sqrt(a))
+
+
+@api_router.get("/dealerships")
+async def list_dealerships(lat: Optional[float] = None, lng: Optional[float] = None, user=Depends(get_current_user)):
+    ds = await db.dealerships.find({}, {"_id": 0}).to_list(100)
+    for d in ds:
+        if lat is not None and lng is not None and d.get("lat") is not None:
+            d["distance_km"] = round(haversine(lat, lng, d["lat"], d["lng"]), 1)
+        else:
+            d["distance_km"] = None
+    if lat is not None and lng is not None:
+        ds.sort(key=lambda x: x["distance_km"] if x["distance_km"] is not None else 1e9)
+        if ds:
+            ds[0]["recommended_reason"] = "Nearest to you"
+    else:
+        ds.sort(key=lambda x: -x.get("services_count", 0))
+        if ds:
+            ds[0]["recommended_reason"] = "Most serviced"
+    return ds
+
+
 # ---------------- Incidents ----------------
 def incident_public(doc):
     doc = dict(doc)
@@ -396,6 +429,11 @@ async def build_incident(user, payload: IncidentCreate, image_b64=None):
     created = now_utc()
     sla_hours = PRIORITY_SLA[ai["priority"]]
     inc_id = f"INC-{uuid.uuid4().hex[:8].upper()}"
+    dealership = None
+    if payload.dealership_id:
+        dealership = await db.dealerships.find_one({"id": payload.dealership_id}, {"_id": 0})
+    dealership_id = payload.dealership_id
+    dealership_name = dealership["name"] if dealership else (payload.dealership_name or "Unassigned")
     doc = {
         "id": inc_id,
         "user_id": user["user_id"],
@@ -408,6 +446,8 @@ async def build_incident(user, payload: IncidentCreate, image_b64=None):
         "vehicle_vin": payload.vehicle_vin or "",
         "source": payload.source,
         "photo_paths": payload.photo_paths,
+        "dealership_id": dealership_id,
+        "dealership_name": dealership_name,
         "category": ai["category"],
         "severity": ai["severity"],
         "priority": ai["priority"],
@@ -423,7 +463,7 @@ async def build_incident(user, payload: IncidentCreate, image_b64=None):
         "created_at": iso(created),
         "resolved_at": None,
         "timeline": [
-            {"status": "submitted", "at": iso(created), "note": f"Incident raised via {payload.source}"},
+            {"status": "submitted", "at": iso(created), "note": f"Incident raised via {payload.source} · routed to {dealership_name}"},
             {"status": "ai_triaged", "at": iso(created), "note": f"AI triage: {ai['category']} / {ai['priority']} priority (severity {ai['severity']}/5)"},
         ],
     }
@@ -474,13 +514,13 @@ def with_sla_flags(docs):
 
 @api_router.get("/dealer/incidents")
 async def dealer_incidents(dealer=Depends(get_current_dealer)):
-    docs = await db.incidents.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    docs = await db.incidents.find({"dealership_id": dealer.get("dealership_id")}, {"_id": 0}).sort("created_at", -1).to_list(1000)
     return with_sla_flags(docs)
 
 
 @api_router.get("/dealer/team")
 async def dealer_team(dealer=Depends(get_current_dealer)):
-    techs = await db.dealers.find({"role": "technician"}, {"_id": 0, "password_hash": 0}).to_list(100)
+    techs = await db.dealers.find({"role": "technician", "dealership_id": dealer.get("dealership_id")}, {"_id": 0, "password_hash": 0}).to_list(100)
     return techs
 
 
@@ -532,7 +572,7 @@ async def escalate(inc_id: str, dealer=Depends(get_current_dealer)):
 # ---------------- KPIs ----------------
 @api_router.get("/dealer/kpis")
 async def kpis(dealer=Depends(get_current_dealer)):
-    docs = with_sla_flags(await db.incidents.find({}, {"_id": 0}).to_list(2000))
+    docs = with_sla_flags(await db.incidents.find({"dealership_id": dealer.get("dealership_id")}, {"_id": 0}).to_list(2000))
     total = len(docs)
     open_ = [d for d in docs if d["status"] != "resolved"]
     resolved = [d for d in docs if d["status"] == "resolved"]
@@ -626,8 +666,8 @@ async def connect_status(dealer=Depends(get_current_dealer)):
         except Exception as e:
             logger.error(f"Connect metrics failed: {e}")
         return {"mode": "live", "instance_id": os.environ.get("AWS_CONNECT_INSTANCE_ID", ""), "source_phone": os.environ.get("AWS_CONNECT_SOURCE_PHONE", ""), "ccp_url": os.environ.get("AWS_CONNECT_CCP_URL", ""), "calls": calls, "metrics": metrics}
-    open_count = await db.incidents.count_documents({"status": {"$ne": "resolved"}})
-    tech_count = await db.dealers.count_documents({"role": "technician"})
+    open_count = await db.incidents.count_documents({"status": {"$ne": "resolved"}, "dealership_id": dealer.get("dealership_id")})
+    tech_count = await db.dealers.count_documents({"role": "technician", "dealership_id": dealer.get("dealership_id")})
     metrics = {"AGENTS_ONLINE": tech_count, "AGENTS_AVAILABLE": max(tech_count - 1, 0), "CONTACTS_IN_QUEUE": open_count, "OLDEST_CONTACT_AGE": 0}
     return {"mode": "simulation", "instance_id": "", "source_phone": "", "ccp_url": "", "calls": calls, "metrics": metrics}
 
@@ -935,6 +975,7 @@ async def request_callback(inc_id: str, body: dict, user=Depends(get_current_use
         "id": f"CB-{uuid.uuid4().hex[:6].upper()}",
         "incident_id": inc_id,
         "user_id": user["user_id"],
+        "dealership_id": inc.get("dealership_id"),
         "customer_name": user.get("name", "Customer"),
         "phone": phone,
         "status": status,
@@ -961,7 +1002,7 @@ async def customer_callbacks(inc_id: str, user=Depends(get_current_user)):
 
 @api_router.get("/dealer/callbacks")
 async def dealer_callbacks(dealer=Depends(get_current_dealer)):
-    return await db.callbacks.find({}, {"_id": 0}).sort("created_at", -1).to_list(200)
+    return await db.callbacks.find({"dealership_id": dealer.get("dealership_id")}, {"_id": 0}).sort("created_at", -1).to_list(200)
 
 
 @api_router.post("/dealer/callbacks/{cb_id}/place")
@@ -1012,15 +1053,47 @@ async def cron_callbacks(background_tasks: BackgroundTasks, authorization: Optio
 
 # ---------------- Startup seed ----------------
 async def seed():
-    owner_email = "ndvtechsys.solutions@gmail.com"
-    if not await db.dealers.find_one({"email": owner_email}):
-        pw = bcrypt.hashpw("DealerPass123!".encode(), bcrypt.gensalt()).decode()
-        await db.dealers.insert_one({"dealer_id": f"dealer_{uuid.uuid4().hex[:10]}", "email": owner_email, "password_hash": pw, "name": "Service Manager", "role": "manager", "created_at": iso(now_utc())})
-    techs = [("Ravi Kumar", "ravi.tech@autocare.com"), ("Maria Chen", "maria.tech@autocare.com"), ("James Okoro", "james.tech@autocare.com")]
-    for name, email in techs:
-        if not await db.dealers.find_one({"email": email}):
+    dealerships = [
+        {"id": "d_metro", "name": "AutoCare Metro Center", "city": "San Francisco, CA", "lat": 37.7749, "lng": -122.4194, "services_count": 1240, "rating": 4.8, "phone": "+14155550101"},
+        {"id": "d_silicon", "name": "AutoCare Silicon Auto", "city": "San Jose, CA", "lat": 37.3382, "lng": -121.8863, "services_count": 1520, "rating": 4.9, "phone": "+14085550102"},
+        {"id": "d_bayview", "name": "AutoCare Bayview Motors", "city": "Oakland, CA", "lat": 37.8044, "lng": -122.2712, "services_count": 890, "rating": 4.6, "phone": "+15105550103"},
+        {"id": "d_northbay", "name": "AutoCare North Bay Service", "city": "Santa Rosa, CA", "lat": 38.4405, "lng": -122.7141, "services_count": 430, "rating": 4.4, "phone": "+17075550104"},
+    ]
+    dmap = {d["id"]: d["name"] for d in dealerships}
+    for d in dealerships:
+        await db.dealerships.update_one({"id": d["id"]}, {"$set": d}, upsert=True)
+    managers = [
+        ("ndvtechsys.solutions@gmail.com", "Service Manager", "d_metro"),
+        ("silicon.manager@autocare.com", "Silicon Manager", "d_silicon"),
+        ("bayview.manager@autocare.com", "Bayview Manager", "d_bayview"),
+        ("northbay.manager@autocare.com", "North Bay Manager", "d_northbay"),
+    ]
+    for email, name, did in managers:
+        if await db.dealers.find_one({"email": email}):
+            await db.dealers.update_one({"email": email}, {"$set": {"dealership_id": did, "dealership_name": dmap[did]}})
+        else:
+            pw = bcrypt.hashpw("DealerPass123!".encode(), bcrypt.gensalt()).decode()
+            await db.dealers.insert_one({"dealer_id": f"dealer_{uuid.uuid4().hex[:10]}", "email": email, "password_hash": pw, "name": name, "role": "manager", "dealership_id": did, "dealership_name": dmap[did], "created_at": iso(now_utc())})
+    techs = [
+        ("Ravi Kumar", "ravi.tech@autocare.com", "d_metro"),
+        ("Maria Chen", "maria.tech@autocare.com", "d_metro"),
+        ("James Okoro", "james.tech@autocare.com", "d_metro"),
+        ("Aisha Khan", "aisha.tech@autocare.com", "d_silicon"),
+        ("Diego Torres", "diego.tech@autocare.com", "d_silicon"),
+        ("Liam Walsh", "liam.tech@autocare.com", "d_bayview"),
+        ("Noah Kim", "noah.tech@autocare.com", "d_bayview"),
+        ("Sara Lopez", "sara.tech@autocare.com", "d_northbay"),
+        ("Omar Farouk", "omar.tech@autocare.com", "d_northbay"),
+    ]
+    for name, email, did in techs:
+        if await db.dealers.find_one({"email": email}):
+            await db.dealers.update_one({"email": email}, {"$set": {"dealership_id": did, "dealership_name": dmap[did]}})
+        else:
             pw = bcrypt.hashpw("TechPass123!".encode(), bcrypt.gensalt()).decode()
-            await db.dealers.insert_one({"dealer_id": f"dealer_{uuid.uuid4().hex[:10]}", "email": email, "password_hash": pw, "name": name, "role": "technician", "specialty": "General Service", "created_at": iso(now_utc())})
+            await db.dealers.insert_one({"dealer_id": f"dealer_{uuid.uuid4().hex[:10]}", "email": email, "password_hash": pw, "name": name, "role": "technician", "specialty": "General Service", "dealership_id": did, "dealership_name": dmap[did], "created_at": iso(now_utc())})
+    # Backfill legacy incidents/callbacks without a dealership to the flagship (owner) branch
+    await db.incidents.update_many({"$or": [{"dealership_id": {"$exists": False}}, {"dealership_id": None}]}, {"$set": {"dealership_id": "d_metro", "dealership_name": dmap["d_metro"]}})
+    await db.callbacks.update_many({"dealership_id": {"$exists": False}}, {"$set": {"dealership_id": "d_metro"}})
 
 
 @app.on_event("startup")

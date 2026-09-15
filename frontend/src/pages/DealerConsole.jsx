@@ -73,6 +73,7 @@ export default function DealerConsole() {
         <div className="flex items-center gap-2.5">
           <div className="grid h-8 w-8 place-items-center rounded-lg bg-primary"><Activity className="h-4 w-4 text-white" strokeWidth={2.5} /></div>
           <span className="font-heading text-xl font-extrabold uppercase tracking-tight">AutoCare<span className="text-accent">Pulse</span></span>
+          {dealer.dealership_name && <span data-testid="dealer-dealership-name" className="ml-2 rounded-full border border-accent/40 bg-accent/10 px-3 py-0.5 font-heading text-sm font-bold uppercase tracking-tight text-accent">{dealer.dealership_name}</span>}
           <span className="ml-2 hidden rounded-full bg-secondary px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground sm:inline">Dealer Ops Console</span>
         </div>
         <div className="flex items-center gap-3">

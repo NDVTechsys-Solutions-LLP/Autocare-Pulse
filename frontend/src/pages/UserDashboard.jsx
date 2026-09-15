@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Activity, LogOut, Plus, Mic, Camera, Car, X, Sparkles, Upload, PhoneCall } from "lucide-react";
+import { Activity, LogOut, Plus, Mic, Camera, Car, X, Sparkles, Upload, PhoneCall, MapPin, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -107,8 +107,31 @@ function NewIncidentDialog({ open, onOpenChange, onCreated }) {
   const [preview, setPreview] = useState(null);
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [dealers, setDealers] = useState([]);
+  const [selDealer, setSelDealer] = useState("");
+  const [locating, setLocating] = useState(false);
 
   const reset = () => { setModel(""); setVin(""); setDesc(""); setPhotoPaths([]); setPreview(null); };
+
+  useEffect(() => {
+    if (!open) return;
+    const fetchD = async (lat, lng) => {
+      try {
+        const r = await api.get("/dealerships", { params: lat != null ? { lat, lng } : {} });
+        setDealers(r.data);
+        if (r.data[0]) setSelDealer(r.data[0].id);
+      } catch { /* ignore */ }
+      setLocating(false);
+    };
+    setLocating(true);
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => fetchD(pos.coords.latitude, pos.coords.longitude),
+        () => fetchD(),
+        { timeout: 6000 }
+      );
+    } else { fetchD(); }
+  }, [open]);
 
   const uploadPhoto = async (e) => {
     const file = e.target.files?.[0];
@@ -130,10 +153,11 @@ function NewIncidentDialog({ open, onOpenChange, onCreated }) {
 
   const submit = async () => {
     if (!model.trim() || !desc.trim()) { toast.error("Add vehicle model and description"); return; }
+    if (!selDealer) { toast.error("Choose a service center"); return; }
     setBusy(true);
     try {
-      const res = await api.post("/incidents", { description: desc, vehicle_model: model, vehicle_vin: vin, source: tab === "voice" ? "voice" : "manual", photo_paths: photoPaths });
-      toast.success(`Incident ${res.data.id} raised · AI set ${res.data.priority} priority`);
+      const res = await api.post("/incidents", { description: desc, vehicle_model: model, vehicle_vin: vin, source: tab === "voice" ? "voice" : "manual", photo_paths: photoPaths, dealership_id: selDealer });
+      toast.success(`Incident ${res.data.id} raised · routed to ${res.data.dealership_name}`);
       reset();
       onCreated(res.data);
     } catch {
@@ -151,6 +175,28 @@ function NewIncidentDialog({ open, onOpenChange, onCreated }) {
           <DialogDescription>Describe your vehicle issue by text, voice or photo — AI triages it instantly.</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
+          <div className="space-y-1.5">
+            <Label className="flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-muted-foreground">
+              Choose a service center {locating && <span className="text-accent">· locating you…</span>}
+            </Label>
+            <div className="ac-scroll max-h-44 space-y-2 overflow-y-auto pr-1">
+              {dealers.map((d) => (
+                <button type="button" key={d.id} data-testid={`dealer-option-${d.id}`} onClick={() => setSelDealer(d.id)}
+                  className={`w-full rounded-lg border p-3 text-left transition-colors duration-200 ${selDealer === d.id ? "border-accent bg-accent/10" : "border-border bg-secondary/30 hover:border-accent/40"}`}>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-heading text-base font-semibold">{d.name}</span>
+                    {d.recommended_reason && <span className="rounded-full bg-accent/20 px-2 py-0.5 font-mono text-[9px] uppercase tracking-wider text-accent">{d.recommended_reason}</span>}
+                  </div>
+                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px] text-muted-foreground">
+                    <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{d.city}{d.distance_km != null ? ` · ${d.distance_km} km` : ""}</span>
+                    <span className="flex items-center gap-1"><Star className="h-3 w-3" />{d.rating}</span>
+                    <span>{d.services_count} serviced</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Vehicle Model</Label>
