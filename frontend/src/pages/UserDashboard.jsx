@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Activity, LogOut, Plus, Mic, Camera, Car, X, Sparkles, Upload } from "lucide-react";
+import { Activity, LogOut, Plus, Mic, Camera, Car, X, Sparkles, Upload, PhoneCall } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +14,7 @@ import { api, API } from "@/lib/apiClient";
 import { StatusBadge, PriorityBadge } from "@/components/app/Badges";
 import VoiceRecorder from "@/components/app/VoiceRecorder";
 import IncidentTimeline from "@/components/app/IncidentTimeline";
+import ChatThread from "@/components/app/ChatThread";
 
 export default function UserDashboard() {
   const { user, logout } = useAuth();
@@ -199,7 +200,15 @@ function NewIncidentDialog({ open, onOpenChange, onCreated }) {
 }
 
 function DetailDialog({ incident, onClose }) {
-  const [token] = useState(null);
+  const [cbPhone, setCbPhone] = useState("");
+  const [cbBusy, setCbBusy] = useState(false);
+  const requestCallback = async () => {
+    if (!cbPhone.trim()) { toast.error("Enter your phone number"); return; }
+    setCbBusy(true);
+    try { await api.post(`/incidents/${incident.id}/callback`, { phone: cbPhone.trim() }); toast.success("Callback requested — the dealer team will call you back"); setCbPhone(""); }
+    catch (e) { toast.error(e.response?.data?.detail || "Request failed"); }
+    finally { setCbBusy(false); }
+  };
   if (!incident) return null;
   return (
     <Dialog open={!!incident} onOpenChange={(o) => !o && onClose()}>
@@ -235,6 +244,18 @@ function DetailDialog({ incident, onClose }) {
             <p className="mb-3 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Live Progress</p>
             <IncidentTimeline incident={incident} />
           </div>
+
+          <div className="rounded-xl border border-border bg-secondary/20 p-3">
+            <p className="mb-2 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Request a Callback</p>
+            <div className="flex gap-2">
+              <Input data-testid="callback-phone-input" value={cbPhone} onChange={(e) => setCbPhone(e.target.value)} placeholder="Your phone e.g. +14155550100" className="bg-background" />
+              <Button data-testid="request-callback-btn" onClick={requestCallback} disabled={cbBusy} className="rounded-full bg-primary font-bold hover:bg-primary/90">
+                <PhoneCall className="mr-1.5 h-4 w-4" /> {cbBusy ? "Requesting…" : "Call Me"}
+              </Button>
+            </div>
+          </div>
+
+          <ChatThread incidentId={incident.id} role="customer" />
         </div>
       </DialogContent>
     </Dialog>

@@ -14,6 +14,9 @@ import KpiBar from "@/components/app/KpiBar";
 import ConnectCCP from "@/components/app/ConnectCCP";
 import CCPSoftphone from "@/components/app/CCPSoftphone";
 import ConnectMetricsPanel from "@/components/app/ConnectMetricsPanel";
+import ChatThread from "@/components/app/ChatThread";
+import RecordingList from "@/components/app/RecordingList";
+import CallbacksPanel from "@/components/app/CallbacksPanel";
 
 const STATUSES = ["ai_triaged", "assigned", "in_progress", "resolved"];
 const PRIORITY_ORDER = { High: 0, Medium: 1, Low: 2 };
@@ -145,6 +148,7 @@ export default function DealerConsole() {
           <TabsContent value="connect" className="mt-4 grid gap-5 lg:grid-cols-2">
             {connect && <ConnectCCP status={connect} onCall={load} />}
             <CCPSoftphone ccpUrl={connect?.ccp_url} />
+            <div className="lg:col-span-2"><CallbacksPanel /></div>
           </TabsContent>
         </Tabs>
       </main>
@@ -278,6 +282,9 @@ function DealerDetail({ incident, team, onClose, onUpdate, onEscalate, onChat })
               </Button>
             )}
           </div>
+
+          <RecordingList incidentId={incident.id} />
+          <ChatThread incidentId={incident.id} role="dealer" />
         </div>
       </DialogContent>
     </Dialog>

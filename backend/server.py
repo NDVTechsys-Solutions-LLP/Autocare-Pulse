@@ -610,6 +610,7 @@ async def connect_chat(body: dict, dealer=Depends(get_current_dealer)):
     })
     if inc:
         await db.incidents.update_one({"id": inc}, {"$push": {"timeline": {"status": "in_progress", "at": iso(now_utc()), "note": f"Amazon Connect chat/SMS {contact_id} opened by {dealer['name']}"}}})
+        await db.connect_chat_messages.insert_one({"id": str(uuid.uuid4()), "incident_id": inc, "sender": "system", "sender_name": "Amazon Connect", "text": f"Chat/SMS session {contact_id} opened by {dealer['name']}.", "at": iso(now_utc())})
     return resp
 
 
@@ -655,6 +656,178 @@ async def connect_metrics(dealer=Depends(get_current_dealer)):
         "current": {"AGENTS_ONLINE": tech, "AGENTS_AVAILABLE": max(tech - 1, 0), "CONTACTS_IN_QUEUE": open_count, "OLDEST_CONTACT_AGE": 0},
         "historical": {"CONTACTS_HANDLED": resolved_count, "CONTACTS_ABANDONED": 0, "HANDLE_TIME": round(avg)},
     }
+
+
+# ---------------- Connect chat thread, recordings, callbacks ----------------
+_s3_client = None
+
+
+def get_s3_client():
+    global _s3_client
+    if _s3_client is None:
+        _s3_client = boto3.client("s3", region_name=os.environ["AWS_REGION"], aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"], aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"])
+    return _s3_client
+
+
+async def _add_chat_message(incident_id, sender, sender_name, text):
+    doc = {"id": str(uuid.uuid4()), "incident_id": incident_id, "sender": sender, "sender_name": sender_name, "text": text, "at": iso(now_utc())}
+    await db.connect_chat_messages.insert_one(dict(doc))
+    return doc
+
+
+@api_router.get("/incidents/{inc_id}/chat")
+async def customer_chat_list(inc_id: str, user=Depends(get_current_user)):
+    inc = await db.incidents.find_one({"id": inc_id, "user_id": user["user_id"]}, {"_id": 0, "id": 1})
+    if not inc:
+        raise HTTPException(status_code=404, detail="Not found")
+    return await db.connect_chat_messages.find({"incident_id": inc_id}, {"_id": 0}).sort("at", 1).to_list(500)
+
+
+@api_router.post("/incidents/{inc_id}/chat")
+async def customer_chat_send(inc_id: str, body: dict, user=Depends(get_current_user)):
+    inc = await db.incidents.find_one({"id": inc_id, "user_id": user["user_id"]}, {"_id": 0, "id": 1})
+    if not inc:
+        raise HTTPException(status_code=404, detail="Not found")
+    text = (body.get("text") or "").strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="Message required")
+    return await _add_chat_message(inc_id, "customer", user.get("name", "Customer"), text)
+
+
+@api_router.get("/dealer/incidents/{inc_id}/chat")
+async def dealer_chat_list(inc_id: str, dealer=Depends(get_current_dealer)):
+    return await db.connect_chat_messages.find({"incident_id": inc_id}, {"_id": 0}).sort("at", 1).to_list(500)
+
+
+@api_router.post("/dealer/incidents/{inc_id}/chat")
+async def dealer_chat_send(inc_id: str, body: dict, dealer=Depends(get_current_dealer)):
+    text = (body.get("text") or "").strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="Message required")
+    return await _add_chat_message(inc_id, "agent", dealer["name"], text)
+
+
+@api_router.get("/dealer/connect/recordings/{inc_id}")
+async def list_recordings(inc_id: str, dealer=Depends(get_current_dealer)):
+    return await db.connect_calls.find({"incident_id": inc_id, "direction": "outbound"}, {"_id": 0}).sort("started_at", -1).to_list(100)
+
+
+@api_router.get("/dealer/connect/recording/{call_id}")
+async def get_recording(call_id: str, dealer=Depends(get_current_dealer)):
+    call = await db.connect_calls.find_one({"id": call_id}, {"_id": 0})
+    if not call:
+        raise HTTPException(status_code=404, detail="Call not found")
+    if call.get("recording_url"):
+        return {"url": call["recording_url"], "source": "url"}
+    bucket = (os.environ.get("AWS_CONNECT_RECORDINGS_BUCKET") or "").strip()
+    if connect_configured() and bucket and call.get("recording_key"):
+        try:
+            url = get_s3_client().generate_presigned_url("get_object", Params={"Bucket": bucket, "Key": call["recording_key"]}, ExpiresIn=3600)
+            return {"url": url, "source": "s3"}
+        except ClientError as exc:
+            raise connect_error(exc)
+    raise HTTPException(status_code=404, detail="Recording not available yet. It appears once the call ends and Amazon Connect syncs it to S3.")
+
+
+@api_router.post("/dealer/connect/recording/{call_id}")
+async def set_recording(call_id: str, body: dict, dealer=Depends(get_current_dealer)):
+    call = await db.connect_calls.find_one({"id": call_id}, {"_id": 0})
+    if not call:
+        raise HTTPException(status_code=404, detail="Call not found")
+    updates = {}
+    if body.get("recording_url"):
+        updates["recording_url"] = body["recording_url"].strip()
+    if body.get("recording_key"):
+        updates["recording_key"] = body["recording_key"].strip()
+    if not updates:
+        raise HTTPException(status_code=400, detail="Provide recording_url or recording_key")
+    await db.connect_calls.update_one({"id": call_id}, {"$set": updates})
+    return {"ok": True, **updates}
+
+
+async def _place_outbound(destination, incident_id, agent_name):
+    live = connect_configured()
+    contact_id = None
+    if live:
+        if not re.match(r"^\+[1-9]\d{7,14}$", destination or ""):
+            raise HTTPException(status_code=400, detail="Valid E.164 phone required, e.g. +14155550100")
+        params = {
+            "InstanceId": os.environ["AWS_CONNECT_INSTANCE_ID"],
+            "ContactFlowId": os.environ["AWS_CONNECT_CONTACT_FLOW_ID"],
+            "DestinationPhoneNumber": destination,
+            "ClientToken": f"cb-{uuid.uuid4().hex[:10]}",
+            "TrafficType": "GENERAL",
+            "RingTimeoutInSeconds": 60,
+            "Attributes": {"incidentId": str(incident_id or ""), "reason": "callback"},
+        }
+        queue_id = (os.environ.get("AWS_CONNECT_QUEUE_ID") or "").strip()
+        source = (os.environ.get("AWS_CONNECT_SOURCE_PHONE") or "").strip()
+        if queue_id:
+            params["QueueId"] = queue_id
+        if source:
+            params["SourcePhoneNumber"] = source
+        if not queue_id and not source:
+            raise HTTPException(status_code=400, detail="Set AWS_CONNECT_SOURCE_PHONE or AWS_CONNECT_QUEUE_ID")
+        try:
+            result = get_connect_client().start_outbound_voice_contact(**params)
+            contact_id = result.get("ContactId")
+        except ClientError as exc:
+            raise connect_error(exc)
+    return contact_id, live
+
+
+@api_router.post("/incidents/{inc_id}/callback")
+async def request_callback(inc_id: str, body: dict, user=Depends(get_current_user)):
+    inc = await db.incidents.find_one({"id": inc_id, "user_id": user["user_id"]}, {"_id": 0})
+    if not inc:
+        raise HTTPException(status_code=404, detail="Not found")
+    phone = (body.get("phone") or "").strip()
+    if not phone:
+        raise HTTPException(status_code=400, detail="Phone number required")
+    contact_id = None
+    live = connect_configured()
+    status = "pending"
+    if live:
+        contact_id, _ = await _place_outbound(phone, inc_id, "Callback")
+        status = "placed"
+    cb = {
+        "id": f"CB-{uuid.uuid4().hex[:6].upper()}",
+        "incident_id": inc_id,
+        "user_id": user["user_id"],
+        "customer_name": user.get("name", "Customer"),
+        "phone": phone,
+        "status": status,
+        "contact_id": contact_id,
+        "mode": "live" if live else "simulation",
+        "created_at": iso(now_utc()),
+    }
+    await db.callbacks.insert_one(dict(cb))
+    note = f"Customer requested a callback on {phone}" + (f" — routed to Amazon Connect ({contact_id})" if contact_id else " — queued for the dealer team")
+    await db.incidents.update_one({"id": inc_id}, {"$push": {"timeline": {"status": inc["status"], "at": iso(now_utc()), "note": note}}})
+    return cb
+
+
+@api_router.get("/incidents/{inc_id}/callbacks")
+async def customer_callbacks(inc_id: str, user=Depends(get_current_user)):
+    return await db.callbacks.find({"incident_id": inc_id, "user_id": user["user_id"]}, {"_id": 0}).sort("created_at", -1).to_list(100)
+
+
+@api_router.get("/dealer/callbacks")
+async def dealer_callbacks(dealer=Depends(get_current_dealer)):
+    return await db.callbacks.find({}, {"_id": 0}).sort("created_at", -1).to_list(200)
+
+
+@api_router.post("/dealer/callbacks/{cb_id}/place")
+async def place_callback(cb_id: str, dealer=Depends(get_current_dealer)):
+    cb = await db.callbacks.find_one({"id": cb_id}, {"_id": 0})
+    if not cb:
+        raise HTTPException(status_code=404, detail="Callback not found")
+    contact_id, live = await _place_outbound(cb["phone"], cb["incident_id"], dealer["name"])
+    await db.callbacks.update_one({"id": cb_id}, {"$set": {"status": "placed", "contact_id": contact_id, "handled_by": dealer["name"]}})
+    if cb.get("incident_id"):
+        note = f"Callback {cb_id} placed to {cb['phone']} by {dealer['name']}" + (f" (ContactId {contact_id})" if contact_id else "")
+        await db.incidents.update_one({"id": cb["incident_id"]}, {"$push": {"timeline": {"status": "in_progress", "at": iso(now_utc()), "note": note}}})
+    return {"ok": True, "contact_id": contact_id, "status": "placed"}
 
 
 # ---------------- Startup seed ----------------
