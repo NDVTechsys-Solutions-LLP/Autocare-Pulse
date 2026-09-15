@@ -432,8 +432,10 @@ async def build_incident(user, payload: IncidentCreate, image_b64=None):
     dealership = None
     if payload.dealership_id:
         dealership = await db.dealerships.find_one({"id": payload.dealership_id}, {"_id": 0})
-    dealership_id = payload.dealership_id
-    dealership_name = dealership["name"] if dealership else (payload.dealership_name or "Unassigned")
+    if not dealership:
+        dealership = await db.dealerships.find_one({}, {"_id": 0}, sort=[("services_count", -1)])
+    dealership_id = dealership["id"] if dealership else None
+    dealership_name = dealership["name"] if dealership else "Unassigned"
     doc = {
         "id": inc_id,
         "user_id": user["user_id"],

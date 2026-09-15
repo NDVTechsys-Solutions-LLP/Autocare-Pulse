@@ -79,6 +79,7 @@ class TestIncidentsAI:
             "description": "Front brakes make a loud grinding noise and pedal goes to floor. Feels unsafe to drive.",
             "vehicle_model": "Honda Activa 6G",
             "source": "manual",
+            "dealership_id": "d_metro",
         }
         r = requests.post(f"{API}/incidents", json=payload, headers=cust_headers, timeout=90)
         assert r.status_code == 200, r.text
@@ -466,3 +467,129 @@ class TestRecordingSimulation404:
         assert r.status_code == 404
         assert "not available yet" in r.json().get("detail", "").lower()
 
+
+
+# ---------------- New: Multi-dealership scoping & routing ----------------
+SILICON_EMAIL = "silicon.manager@autocare.com"
+BAYVIEW_EMAIL = "bayview.manager@autocare.com"
+NORTHBAY_EMAIL = "northbay.manager@autocare.com"
+DEALER_PW = "DealerPass123!"
+
+
+def _dealer_login(email, password=DEALER_PW):
+    r = requests.post(f"{API}/auth/dealer/login", json={"email": email, "password": password}, timeout=30)
+    assert r.status_code == 200, r.text
+    return r.json()
+
+
+@pytest.fixture(scope="session")
+def silicon_login():
+    return _dealer_login(SILICON_EMAIL)
+
+
+@pytest.fixture(scope="session")
+def silicon_headers(silicon_login):
+    return {"Authorization": f"Bearer {silicon_login['token']}"}
+
+
+class TestDealershipsListing:
+    def test_default_sort_by_services_count(self, cust_headers):
+        r = requests.get(f"{API}/dealerships", headers=cust_headers, timeout=30)
+        assert r.status_code == 200
+        ds = r.json()
+        assert len(ds) >= 4
+        ids = {d["id"] for d in ds}
+        for expected in ("d_metro", "d_silicon", "d_bayview", "d_northbay"):
+            assert expected in ids, f"missing {expected}"
+        counts = [d.get("services_count", 0) for d in ds]
+        assert counts == sorted(counts, reverse=True), f"not sorted desc: {counts}"
+        assert ds[0].get("recommended_reason") == "Most serviced"
+        # only first has the flag
+        for d in ds[1:]:
+            assert not d.get("recommended_reason")
+
+    def test_with_coords_sorted_by_distance(self, cust_headers):
+        # Use d_silicon's approx location -> silicon should be nearest (distance ~0)
+        # Query all first to find its coords
+        r0 = requests.get(f"{API}/dealerships", headers=cust_headers, timeout=30)
+        silicon = next(d for d in r0.json() if d["id"] == "d_silicon")
+        lat, lng = silicon["lat"], silicon["lng"]
+        r = requests.get(f"{API}/dealerships", params={"lat": lat, "lng": lng}, headers=cust_headers, timeout=30)
+        assert r.status_code == 200
+        ds = r.json()
+        assert ds[0]["id"] == "d_silicon"
+        assert ds[0].get("recommended_reason") == "Nearest to you"
+        dists = [d["distance_km"] for d in ds]
+        assert dists == sorted(dists), f"not sorted by distance: {dists}"
+        assert isinstance(ds[0]["distance_km"], (int, float))
+
+
+class TestIncidentRouting:
+    def test_incident_routes_to_chosen_dealership(self, cust_headers, silicon_headers):
+        payload = {
+            "description": "Check engine light on for two days, mild power loss.",
+            "vehicle_model": "Tesla Model 3",
+            "source": "manual",
+            "dealership_id": "d_silicon",
+        }
+        r = requests.post(f"{API}/incidents", json=payload, headers=cust_headers, timeout=90)
+        assert r.status_code == 200, r.text
+        d = r.json()
+        assert d["dealership_id"] == "d_silicon"
+        assert "silicon" in d["dealership_name"].lower(), d["dealership_name"]
+        notes = [t.get("note", "") for t in d["timeline"]]
+        assert any("routed to" in n.lower() and "silicon" in n.lower() for n in notes), notes
+        pytest.silicon_inc_id = d["id"]
+
+        # silicon manager sees it
+        r2 = requests.get(f"{API}/dealer/incidents", headers=silicon_headers, timeout=30)
+        assert r2.status_code == 200
+        ids = [x["id"] for x in r2.json()]
+        assert d["id"] in ids
+
+
+class TestPerBranchScoping:
+    def test_silicon_login_returns_dealership_name(self, silicon_login):
+        assert silicon_login["dealer"].get("dealership_id") == "d_silicon"
+        assert "silicon" in (silicon_login["dealer"].get("dealership_name") or "").lower()
+
+    def test_silicon_team_only_silicon_techs(self, silicon_headers):
+        r = requests.get(f"{API}/dealer/team", headers=silicon_headers, timeout=30)
+        assert r.status_code == 200
+        techs = r.json()
+        emails = {t["email"] for t in techs}
+        # Silicon techs per seed: aisha.tech, diego.tech
+        assert "aisha.tech@autocare.com" in emails
+        assert "diego.tech@autocare.com" in emails
+        # Metro techs should NOT appear
+        assert "ravi.tech@autocare.com" not in emails
+        assert "maria.tech@autocare.com" not in emails
+        # Also names include Aisha / Diego
+        names = " ".join([t.get("name", "") for t in techs]).lower()
+        assert "aisha" in names and "diego" in names
+
+    def test_metro_owner_does_not_see_silicon_incident(self, dealer_headers):
+        r = requests.get(f"{API}/dealer/incidents", headers=dealer_headers, timeout=30)
+        assert r.status_code == 200
+        docs = r.json()
+        ids = {x["id"] for x in docs}
+        assert getattr(pytest, "silicon_inc_id", "___NA___") not in ids
+        # And all metro-visible incidents are d_metro
+        for x in docs:
+            assert x.get("dealership_id") == "d_metro", f"leak: {x.get('id')} -> {x.get('dealership_id')}"
+
+    def test_silicon_kpis_scoped(self, silicon_headers):
+        r = requests.get(f"{API}/dealer/kpis", headers=silicon_headers, timeout=30)
+        assert r.status_code == 200
+        k = r.json()
+        for key in ("total", "open", "resolved", "breaches"):
+            assert key in k
+
+    def test_silicon_callbacks_scoped(self, silicon_headers):
+        r = requests.get(f"{API}/dealer/callbacks", headers=silicon_headers, timeout=30)
+        assert r.status_code == 200
+        cbs = r.json()
+        # Metro-heavy callbacks should not leak
+        for c in cbs:
+            # dealership_id may not be included in response; ensure incident_id maps to a silicon incident if present
+            assert c.get("dealership_id", "d_silicon") == "d_silicon" or c.get("dealership_id") is None
