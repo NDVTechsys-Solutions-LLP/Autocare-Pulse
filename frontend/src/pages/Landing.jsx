@@ -5,7 +5,7 @@ import { Activity, Mic, Camera, Cpu, ShieldAlert, Radio, ArrowRight, Wrench, Bui
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { api, dealerCfg } from "@/lib/apiClient";
 
@@ -66,7 +66,10 @@ export default function Landing() {
             </Button>
           </DialogTrigger>
           <DialogContent className="border-border bg-card">
-            <DialogHeader><DialogTitle className="font-heading text-2xl uppercase tracking-tight flex items-center gap-2"><Wrench className="h-5 w-5 text-primary" /> Dealer Ops Console</DialogTitle></DialogHeader>
+            <DialogHeader>
+              <DialogTitle className="font-heading text-2xl uppercase tracking-tight flex items-center gap-2"><Wrench className="h-5 w-5 text-primary" /> Dealer Ops Console</DialogTitle>
+              <DialogDescription>Sign in with your dealer email and password to manage the incident queue.</DialogDescription>
+            </DialogHeader>
             <form onSubmit={dealerLogin} className="space-y-4 pt-2">
               <div className="space-y-1.5">
                 <Label className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Email</Label>

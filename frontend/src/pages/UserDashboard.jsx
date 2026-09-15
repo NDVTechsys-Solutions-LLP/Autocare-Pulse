@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
@@ -145,7 +145,10 @@ function NewIncidentDialog({ open, onOpenChange, onCreated }) {
   return (
     <Dialog open={open} onOpenChange={(o) => { onOpenChange(o); if (!o) reset(); }}>
       <DialogContent className="max-h-[90vh] overflow-y-auto border-border bg-card sm:max-w-lg">
-        <DialogHeader><DialogTitle className="font-heading text-2xl uppercase tracking-tight">Raise an Incident</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <DialogTitle className="font-heading text-2xl uppercase tracking-tight">Raise an Incident</DialogTitle>
+          <DialogDescription>Describe your vehicle issue by text, voice or photo — AI triages it instantly.</DialogDescription>
+        </DialogHeader>
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
@@ -205,6 +208,7 @@ function DetailDialog({ incident, onClose }) {
           <DialogTitle className="flex items-center gap-3 font-heading text-2xl uppercase tracking-tight">
             {incident.id}
           </DialogTitle>
+          <DialogDescription>Live status, AI assessment and progress timeline for this incident.</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className="flex flex-wrap items-center gap-2">

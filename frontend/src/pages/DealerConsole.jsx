@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { Activity, LogOut, ArrowUpRight, Clock, ChevronRight, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell, PieChart, Pie } from "recharts";
 import { toast } from "sonner";
@@ -213,7 +213,10 @@ function DealerDetail({ incident, team, onClose, onUpdate, onEscalate }) {
   return (
     <Dialog open={!!incident} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-h-[90vh] overflow-y-auto border-border bg-card sm:max-w-lg">
-        <DialogHeader><DialogTitle className="font-heading text-2xl uppercase tracking-tight">{incident.id}</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <DialogTitle className="font-heading text-2xl uppercase tracking-tight">{incident.id}</DialogTitle>
+          <DialogDescription>Assign a technician, update status, escalate or resolve this incident.</DialogDescription>
+        </DialogHeader>
         <div className="space-y-4">
           <div className="flex flex-wrap items-center gap-2">
             <StatusBadge status={incident.status} testid="dealer-detail-status" />
