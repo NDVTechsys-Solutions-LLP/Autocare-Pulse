@@ -242,3 +242,98 @@ class TestConnect:
         assert d["mode"] == "simulation"
         assert set(d["current"].keys()) >= {"AGENTS_ONLINE", "AGENTS_AVAILABLE", "CONTACTS_IN_QUEUE", "OLDEST_CONTACT_AGE"}
         assert set(d["historical"].keys()) >= {"CONTACTS_HANDLED", "CONTACTS_ABANDONED", "HANDLE_TIME"}
+
+
+# ---------------- Two-way Chat, Callback, Recordings (new features) ----------------
+class TestChatThread:
+    def test_customer_send_then_dealer_sees(self, cust_headers, dealer_headers):
+        inc = pytest.brake_id
+        r = requests.post(f"{API}/incidents/{inc}/chat", json={"text": "Hello from customer TEST"}, headers=cust_headers, timeout=30)
+        assert r.status_code == 200, r.text
+        m1 = r.json()
+        assert m1["sender"] == "customer"
+        assert m1["text"] == "Hello from customer TEST"
+        # dealer list
+        r2 = requests.get(f"{API}/dealer/incidents/{inc}/chat", headers=dealer_headers, timeout=30)
+        assert r2.status_code == 200
+        texts = [x["text"] for x in r2.json()]
+        assert "Hello from customer TEST" in texts
+
+    def test_dealer_send_then_customer_sees(self, cust_headers, dealer_headers):
+        inc = pytest.brake_id
+        r = requests.post(f"{API}/dealer/incidents/{inc}/chat", json={"text": "Hello from dealer TEST"}, headers=dealer_headers, timeout=30)
+        assert r.status_code == 200, r.text
+        assert r.json()["sender"] == "agent"
+        r2 = requests.get(f"{API}/incidents/{inc}/chat", headers=cust_headers, timeout=30)
+        assert r2.status_code == 200
+        texts = [x["text"] for x in r2.json()]
+        assert "Hello from dealer TEST" in texts
+
+    def test_chat_empty_rejected(self, cust_headers):
+        r = requests.post(f"{API}/incidents/{pytest.brake_id}/chat", json={"text": "   "}, headers=cust_headers, timeout=30)
+        assert r.status_code == 400
+
+
+class TestCallback:
+    def test_customer_request_and_dealer_place(self, cust_headers, dealer_headers):
+        inc = pytest.brake_id
+        r = requests.post(f"{API}/incidents/{inc}/callback", json={"phone": "+1-555-0100"}, headers=cust_headers, timeout=30)
+        assert r.status_code == 200, r.text
+        cb = r.json()
+        assert cb["id"].startswith("CB-")
+        assert cb["phone"] == "+1-555-0100"
+        assert cb["status"] == "pending"  # sim
+        pytest.cb_id = cb["id"]
+        # timeline entry
+        r2 = requests.get(f"{API}/incidents/{inc}", headers=cust_headers, timeout=30)
+        notes = [t.get("note", "") for t in r2.json()["timeline"]]
+        assert any("Customer requested a callback" in n for n in notes)
+        # dealer list contains it
+        r3 = requests.get(f"{API}/dealer/callbacks", headers=dealer_headers, timeout=30)
+        assert r3.status_code == 200
+        assert any(c["id"] == cb["id"] for c in r3.json())
+
+    def test_dealer_place_callback(self, dealer_headers, cust_headers):
+        r = requests.post(f"{API}/dealer/callbacks/{pytest.cb_id}/place", headers=dealer_headers, timeout=30)
+        assert r.status_code == 200
+        assert r.json()["status"] == "placed"
+        r3 = requests.get(f"{API}/dealer/callbacks", headers=dealer_headers, timeout=30)
+        found = [c for c in r3.json() if c["id"] == pytest.cb_id][0]
+        assert found["status"] == "placed"
+        # timeline updated
+        r2 = requests.get(f"{API}/incidents/{pytest.brake_id}", headers=cust_headers, timeout=30)
+        notes = [t.get("note", "") for t in r2.json()["timeline"]]
+        assert any(pytest.cb_id in n and "placed" in n for n in notes)
+
+    def test_callback_missing_phone(self, cust_headers):
+        r = requests.post(f"{API}/incidents/{pytest.brake_id}/callback", json={"phone": ""}, headers=cust_headers, timeout=30)
+        assert r.status_code == 400
+
+
+class TestRecordings:
+    def test_list_and_play_flow(self, dealer_headers, cust_headers):
+        inc = pytest.brake_id
+        # place a call first so a recording row exists
+        rc = requests.post(
+            f"{API}/dealer/connect/call",
+            json={"incident_id": inc, "customer_name": "Test User", "direction": "outbound"},
+            headers=dealer_headers, timeout=30,
+        )
+        assert rc.status_code == 200
+        call_id = rc.json()["id"]
+        # list recordings
+        r = requests.get(f"{API}/dealer/connect/recordings/{inc}", headers=dealer_headers, timeout=30)
+        assert r.status_code == 200
+        calls = r.json()
+        assert any(c["id"] == call_id for c in calls)
+        # play with no recording -> 404 friendly
+        r2 = requests.get(f"{API}/dealer/connect/recording/{call_id}", headers=dealer_headers, timeout=30)
+        assert r2.status_code == 404
+        # attach a URL
+        url = "https://example.com/test.mp3"
+        r3 = requests.post(f"{API}/dealer/connect/recording/{call_id}", json={"recording_url": url}, headers=dealer_headers, timeout=30)
+        assert r3.status_code == 200
+        # now play returns URL
+        r4 = requests.get(f"{API}/dealer/connect/recording/{call_id}", headers=dealer_headers, timeout=30)
+        assert r4.status_code == 200
+        assert r4.json()["url"] == url
