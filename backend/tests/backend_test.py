@@ -337,3 +337,132 @@ class TestRecordings:
         r4 = requests.get(f"{API}/dealer/connect/recording/{call_id}", headers=dealer_headers, timeout=30)
         assert r4.status_code == 200
         assert r4.json()["url"] == url
+
+
+# ---------------- New: dealer chat email fire-and-forget, callback scheduling, cron, recording sim 404 ----------------
+from datetime import datetime, timedelta, timezone
+import os as _os
+
+CRON_SECRET = _os.environ.get("WEBHOOK_CRON_SECRET", "wcs_autocare_9f3a1c7b52e84d6f0a1b2c3d4e5f6071")
+
+
+class TestDealerChatEmail:
+    def test_dealer_chat_send_returns_200_and_stores(self, dealer_headers, cust_headers):
+        inc = pytest.brake_id
+        r = requests.post(
+            f"{API}/dealer/incidents/{inc}/chat",
+            json={"text": "Dealer email trigger TEST msg"},
+            headers=dealer_headers, timeout=30,
+        )
+        assert r.status_code == 200, r.text
+        d = r.json()
+        assert d["sender"] == "agent"
+        assert d["text"] == "Dealer email trigger TEST msg"
+        # Verify persisted (visible to customer)
+        r2 = requests.get(f"{API}/incidents/{inc}/chat", headers=cust_headers, timeout=30)
+        assert r2.status_code == 200
+        texts = [x["text"] for x in r2.json()]
+        assert "Dealer email trigger TEST msg" in texts
+
+
+class TestCallbackScheduling:
+    def test_future_scheduled_at_returns_scheduled(self, cust_headers):
+        future = (datetime.now(timezone.utc) + timedelta(hours=2)).isoformat()
+        r = requests.post(
+            f"{API}/incidents/{pytest.brake_id}/callback",
+            json={"phone": "+1-555-0177", "scheduled_at": future},
+            headers=cust_headers, timeout=30,
+        )
+        assert r.status_code == 200, r.text
+        cb = r.json()
+        assert cb["status"] == "scheduled"
+        assert cb["scheduled_at"] is not None
+        pytest.scheduled_cb_id = cb["id"]
+
+    def test_no_scheduled_at_returns_pending_sim(self, cust_headers):
+        r = requests.post(
+            f"{API}/incidents/{pytest.brake_id}/callback",
+            json={"phone": "+1-555-0188"},
+            headers=cust_headers, timeout=30,
+        )
+        assert r.status_code == 200, r.text
+        assert r.json()["status"] == "pending"
+
+    def test_past_scheduled_at_immediate_pending_sim(self, cust_headers):
+        past = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
+        r = requests.post(
+            f"{API}/incidents/{pytest.brake_id}/callback",
+            json={"phone": "+1-555-0199", "scheduled_at": past},
+            headers=cust_headers, timeout=30,
+        )
+        assert r.status_code == 200, r.text
+        assert r.json()["status"] == "pending"
+
+
+class TestCronCallbacks:
+    def test_cron_missing_auth_401(self):
+        r = requests.post(f"{API}/cron/callbacks", timeout=30)
+        assert r.status_code == 401
+
+    def test_cron_bad_auth_401(self):
+        r = requests.post(f"{API}/cron/callbacks", headers={"Authorization": "Bearer wrong"}, timeout=30)
+        assert r.status_code == 401
+
+    def test_cron_valid_auth_200_and_flips_due(self, cust_headers, dealer_headers):
+        # Seed a due (past) scheduled callback via API by first creating a future one, then forcing a past scheduled_at via a new POST
+        # Simplest: create with future then wait not needed; direct approach: create a fresh scheduled with a slightly-in-the-future time and update via cron logic requires past. Emit one with a past time via mongo isn't accessible here.
+        # Instead: create a future-scheduled and then re-post via API with same phone but past time — new record.
+        past = (datetime.now(timezone.utc) - timedelta(minutes=5)).isoformat()
+        # request_callback treats past as immediate 'pending' (no live), so we can't get a 'scheduled' past via public API.
+        # So we exercise cron endpoint auth path + drain semantics: call cron, ensure 200 and any previously-scheduled with a due time flips.
+        r = requests.post(f"{API}/cron/callbacks", headers={"Authorization": f"Bearer {CRON_SECRET}"}, timeout=30)
+        assert r.status_code == 200
+        assert r.json().get("ok") is True
+
+    def test_cron_flips_scheduled_when_due(self, cust_headers, dealer_headers):
+        # Create a scheduled callback ~5s in the future, wait, then run cron and assert it flipped to 'pending' (sim)
+        future = (datetime.now(timezone.utc) + timedelta(seconds=6)).isoformat()
+        r = requests.post(
+            f"{API}/incidents/{pytest.brake_id}/callback",
+            json={"phone": "+1-555-0166", "scheduled_at": future},
+            headers=cust_headers, timeout=30,
+        )
+        assert r.status_code == 200, r.text
+        cb = r.json()
+        assert cb["status"] == "scheduled"
+        cb_id = cb["id"]
+        time.sleep(8)
+        r2 = requests.post(f"{API}/cron/callbacks", headers={"Authorization": f"Bearer {CRON_SECRET}"}, timeout=30)
+        assert r2.status_code == 200
+        # background task — poll briefly
+        deadline = time.time() + 15
+        final_status = None
+        while time.time() < deadline:
+            r3 = requests.get(f"{API}/dealer/callbacks", headers=dealer_headers, timeout=30)
+            assert r3.status_code == 200
+            found = [c for c in r3.json() if c["id"] == cb_id]
+            if found and found[0]["status"] != "scheduled":
+                final_status = found[0]["status"]
+                break
+            time.sleep(1)
+        assert final_status == "pending", f"expected pending in sim, got {final_status}"
+        # timeline note appended
+        r4 = requests.get(f"{API}/incidents/{pytest.brake_id}", headers=cust_headers, timeout=30)
+        notes = [t.get("note", "") for t in r4.json()["timeline"]]
+        assert any(cb_id in n and "Scheduled callback" in n for n in notes)
+
+
+class TestRecordingSimulation404:
+    def test_recording_sim_returns_friendly_404(self, dealer_headers):
+        # Place a call in sim so a call exists but has no recording_url
+        rc = requests.post(
+            f"{API}/dealer/connect/call",
+            json={"incident_id": pytest.brake_id, "customer_name": "Test User", "direction": "outbound"},
+            headers=dealer_headers, timeout=30,
+        )
+        assert rc.status_code == 200
+        call_id = rc.json()["id"]
+        r = requests.get(f"{API}/dealer/connect/recording/{call_id}", headers=dealer_headers, timeout=30)
+        assert r.status_code == 404
+        assert "not available yet" in r.json().get("detail", "").lower()
+

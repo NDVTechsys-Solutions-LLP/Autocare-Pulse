@@ -804,14 +804,14 @@ async def dealer_chat_list(inc_id: str, dealer=Depends(get_current_dealer)):
 
 
 @api_router.post("/dealer/incidents/{inc_id}/chat")
-async def dealer_chat_send(inc_id: str, body: dict, dealer=Depends(get_current_dealer)):
+async def dealer_chat_send(inc_id: str, body: dict, background_tasks: BackgroundTasks, dealer=Depends(get_current_dealer)):
     text = (body.get("text") or "").strip()
     if not text:
         raise HTTPException(status_code=400, detail="Message required")
     msg = await _add_chat_message(inc_id, "agent", dealer["name"], text)
     inc = await db.incidents.find_one({"id": inc_id}, {"_id": 0})
     if inc and inc.get("customer_email"):
-        await notify_customer_chat(inc, dealer["name"], text)
+        background_tasks.add_task(notify_customer_chat, inc, dealer["name"], text)
     return msg
 
 

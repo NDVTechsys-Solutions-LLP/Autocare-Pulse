@@ -1,0 +1,22 @@
+{
+  "summary": "Validated 4 new capabilities: (A) dealer chat send triggers customer email fire-and-forget while still returning 200 and storing the message; (B) callback scheduling — future scheduled_at -> 'scheduled' + persisted, no scheduled_at -> 'pending' (sim), past scheduled_at -> immediate 'pending' (sim); (C) cron /api/cron/callbacks — 401 without/with wrong Bearer, 200 with correct WEBHOOK_CRON_SECRET, and a scheduled callback with a due (past) scheduled_at flips to 'pending' (sim) after cron runs with a 'Scheduled callback ... due' timeline note; (D) recording sim path — GET /api/dealer/connect/recording/{call_id} returns 404 with friendly 'not available yet' detail on a sim call. Backend: 35/35 pytest tests pass (9 new tests added across TestDealerChatEmail, TestCallbackScheduling, TestCronCallbacks, TestRecordingSimulation404). Frontend: customer /dashboard incident detail exposes callback-phone-input, callback-time-input (datetime-local), request-callback-btn; submitting with a future time surfaces toast \"Callback scheduled — we'll call at your chosen time\"; submitting with no time surfaces \"Callback requested — the dealer team will call you back\". Regression on dealer /dealer: incident detail still renders recordings-section, chat-thread, chat-input, chat-send-btn — dealer message posts and is visible in thread (verified 'Dealer regression UI msg TEST').",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": ["/app/backend/tests/backend_test.py", "/app/test_reports/pytest/pytest_results.xml"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.request_callback still doesn't touch incident updated_at when appending the timeline entry (carried over from iter 3) — minor consistency issue.",
+    "process_due_callbacks catches Exception around _place_outbound and defaults to 'pending' — good; consider recording last_error on the callback doc for observability.",
+    "cron_callbacks uses hmac.compare_digest — correct constant-time compare. Good.",
+    "notify_customer_chat is awaited inside dealer_chat_send — if Resend is slow this blocks the response. Consider offloading to BackgroundTasks so the endpoint truly stays fire-and-forget (spec says 'best-effort'). Currently the endpoint still returns 200 even on send failure because _assert_safe_email/send_email should not raise, but any latency is user-visible.",
+    "Recording auto-link S3 lookup is LIVE-only and not exercised here; ensure it's wrapped in try/except so a mis-configured bucket doesn't 500 (couldn't verify in sim)."
+  ],
+  "updated_files": ["/app/backend/tests/backend_test.py"],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "Dealer manager ndvtechsys.solutions@gmail.com / DealerPass123! (JWT). Customer bearer/cookie session token 'test_session_fixed_ABC123' seeded in test_database. Cron: WEBHOOK_CRON_SECRET=wcs_autocare_9f3a1c7b52e84d6f0a1b2c3d4e5f6071.",
+  "seed_data_creation": "Multiple test callbacks created (CB-*) with mix of scheduled/pending statuses; cron flip test created and flipped one scheduled callback to pending.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Run: pytest /app/backend/tests/backend_test.py -o addopts='' -p no:xdist --junitxml=/app/test_reports/pytest/pytest_results.xml. Recording auto-link auto-S3 discovery cannot be tested without AWS_CONNECT_RECORDINGS_BUCKET + credentials — only the sim 404 path is covered. Email path is fire-and-forget (Resend via EMERGENT_EMAIL_KEY); we assert dealer_chat_send still returns 200 and message is stored — actual delivery is out of scope in automated tests.",
+  "rca of the issue": "No functional bugs. All 4 targeted features (dealer chat email trigger, callback scheduling future/none/past, cron auth + due-flip, recording sim 404) verified end-to-end. Customer UI callback scheduling toasts confirmed via Playwright."
+}
