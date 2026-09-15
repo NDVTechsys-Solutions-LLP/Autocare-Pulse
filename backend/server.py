@@ -12,6 +12,8 @@ import tempfile
 import bcrypt
 import jwt as pyjwt
 import requests
+import boto3
+from botocore.exceptions import ClientError
 from pathlib import Path
 from pydantic import BaseModel, Field
 from typing import List, Optional
@@ -455,30 +457,146 @@ async def kpis(dealer=Depends(get_current_dealer)):
     }
 
 
-# ---------------- Amazon Connect (simulated contact center) ----------------
+# ---------------- Amazon Connect (real via boto3, simulation fallback) ----------------
+CONNECT_REQUIRED = ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_REGION", "AWS_CONNECT_INSTANCE_ID", "AWS_CONNECT_CONTACT_FLOW_ID"]
+_connect_client = None
+
+
+def connect_configured():
+    return all((os.environ.get(k) or "").strip() for k in CONNECT_REQUIRED)
+
+
+def get_connect_client():
+    global _connect_client
+    if _connect_client is None:
+        _connect_client = boto3.client(
+            "connect",
+            region_name=os.environ["AWS_REGION"],
+            aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
+            aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"],
+        )
+    return _connect_client
+
+
+def connect_error(exc):
+    err = exc.response.get("Error", {}) if hasattr(exc, "response") else {}
+    code = err.get("Code", "AWS_ERROR")
+    status = 400
+    if code in ("ThrottlingException", "LimitExceededException"):
+        status = 429
+    elif code in ("AccessDeniedException", "UnauthorizedOperation"):
+        status = 403
+    elif code == "ResourceNotFoundException":
+        status = 404
+    return HTTPException(status_code=status, detail=f"Amazon Connect: {code} — {err.get('Message', str(exc))}")
+
+
+async def connect_live_metrics():
+    client = get_connect_client()
+    data = client.get_current_metric_data(
+        InstanceId=os.environ["AWS_CONNECT_INSTANCE_ID"],
+        Filters={"Channels": ["VOICE"]},
+        Groupings=["CHANNEL"],
+        CurrentMetrics=[
+            {"Name": "AGENTS_ONLINE", "Unit": "COUNT"},
+            {"Name": "AGENTS_AVAILABLE", "Unit": "COUNT"},
+            {"Name": "CONTACTS_IN_QUEUE", "Unit": "COUNT"},
+            {"Name": "OLDEST_CONTACT_AGE", "Unit": "SECONDS"},
+        ],
+        MaxResults=100,
+    )
+    out = {}
+    for res in data.get("MetricResults", []):
+        for m in res.get("Collections", []):
+            out[m["Metric"]["Name"]] = m.get("Value", 0)
+    return out
+
+
 @api_router.get("/dealer/connect/status")
 async def connect_status(dealer=Depends(get_current_dealer)):
-    configured = bool(os.environ.get("AWS_CONNECT_INSTANCE_ID"))
     calls = await db.connect_calls.find({}, {"_id": 0}).sort("started_at", -1).to_list(50)
-    return {"mode": "live" if configured else "simulation", "instance_id": os.environ.get("AWS_CONNECT_INSTANCE_ID", ""), "calls": calls}
+    if connect_configured():
+        metrics = {"AGENTS_ONLINE": 0, "AGENTS_AVAILABLE": 0, "CONTACTS_IN_QUEUE": 0, "OLDEST_CONTACT_AGE": 0}
+        try:
+            metrics.update(await connect_live_metrics())
+        except Exception as e:
+            logger.error(f"Connect metrics failed: {e}")
+        return {"mode": "live", "instance_id": os.environ.get("AWS_CONNECT_INSTANCE_ID", ""), "source_phone": os.environ.get("AWS_CONNECT_SOURCE_PHONE", ""), "ccp_url": os.environ.get("AWS_CONNECT_CCP_URL", ""), "calls": calls, "metrics": metrics}
+    open_count = await db.incidents.count_documents({"status": {"$ne": "resolved"}})
+    tech_count = await db.dealers.count_documents({"role": "technician"})
+    metrics = {"AGENTS_ONLINE": tech_count, "AGENTS_AVAILABLE": max(tech_count - 1, 0), "CONTACTS_IN_QUEUE": open_count, "OLDEST_CONTACT_AGE": 0}
+    return {"mode": "simulation", "instance_id": "", "source_phone": "", "ccp_url": "", "calls": calls, "metrics": metrics}
 
 
 @api_router.post("/dealer/connect/call")
 async def connect_call(body: dict, dealer=Depends(get_current_dealer)):
+    call_id = f"CALL-{uuid.uuid4().hex[:6].upper()}"
+    destination = (body.get("destination_phone_number") or "").strip()
+    contact_id = None
+    live = connect_configured()
+    if live:
+        if not re.match(r"^\+[1-9]\d{7,14}$", destination):
+            raise HTTPException(status_code=400, detail="Enter a valid destination phone in E.164 format, e.g. +14155550100")
+        params = {
+            "InstanceId": os.environ["AWS_CONNECT_INSTANCE_ID"],
+            "ContactFlowId": os.environ["AWS_CONNECT_CONTACT_FLOW_ID"],
+            "DestinationPhoneNumber": destination,
+            "ClientToken": f"{call_id}-{int(now_utc().timestamp())}",
+            "TrafficType": "GENERAL",
+            "RingTimeoutInSeconds": 60,
+            "Attributes": {"incidentId": str(body.get("incident_id") or ""), "agent": dealer["name"]},
+        }
+        queue_id = (os.environ.get("AWS_CONNECT_QUEUE_ID") or "").strip()
+        source = (os.environ.get("AWS_CONNECT_SOURCE_PHONE") or "").strip()
+        if queue_id:
+            params["QueueId"] = queue_id
+        if source:
+            params["SourcePhoneNumber"] = source
+        if not queue_id and not source:
+            raise HTTPException(status_code=400, detail="Set AWS_CONNECT_SOURCE_PHONE or AWS_CONNECT_QUEUE_ID in backend/.env")
+        try:
+            result = get_connect_client().start_outbound_voice_contact(**params)
+            contact_id = result.get("ContactId")
+        except ClientError as exc:
+            raise connect_error(exc)
     call = {
-        "id": f"CALL-{uuid.uuid4().hex[:6].upper()}",
+        "id": call_id,
+        "contact_id": contact_id,
         "incident_id": body.get("incident_id"),
         "customer_name": body.get("customer_name", "Customer"),
-        "direction": body.get("direction", "outbound"),
+        "destination": destination,
+        "direction": "outbound",
         "agent": dealer["name"],
-        "status": "connected",
+        "status": "initiated" if live else "connected",
+        "mode": "live" if live else "simulation",
         "started_at": iso(now_utc()),
-        "transcript": body.get("transcript", "Agent connected with customer via Amazon Connect softphone."),
+        "transcript": body.get("transcript", "Outbound voice contact started via Amazon Connect." if live else "Agent connected with customer via Amazon Connect softphone (simulation)."),
     }
     await db.connect_calls.insert_one(dict(call))
     if body.get("incident_id"):
-        await db.incidents.update_one({"id": body["incident_id"]}, {"$push": {"timeline": {"status": "in_progress", "at": iso(now_utc()), "note": f"Amazon Connect call {call['id']} placed by {dealer['name']}"}}})
+        note = f"Amazon Connect {'live ' if live else ''}call {call_id}{f' (ContactId {contact_id})' if contact_id else ''} placed by {dealer['name']}"
+        await db.incidents.update_one({"id": body["incident_id"]}, {"$push": {"timeline": {"status": "in_progress", "at": iso(now_utc()), "note": note}}})
     return call
+
+
+@api_router.post("/dealer/connect/chat")
+async def connect_chat(body: dict, dealer=Depends(get_current_dealer)):
+    if not connect_configured():
+        raise HTTPException(status_code=400, detail="Amazon Connect is not configured — add AWS credentials to enable chat")
+    try:
+        result = get_connect_client().start_chat_contact(
+            InstanceId=os.environ["AWS_CONNECT_INSTANCE_ID"],
+            ContactFlowId=os.environ["AWS_CONNECT_CONTACT_FLOW_ID"],
+            ParticipantDetails={"DisplayName": body.get("display_name", "Customer")},
+            SupportedMessagingContentTypes=["text/plain"],
+            ChatDurationInMinutes=60,
+            ClientToken=f"chat-{uuid.uuid4().hex[:8]}",
+            Attributes={"incidentId": str(body.get("incident_id") or "")},
+            InitialMessage={"Content": body.get("message", "Hello"), "ContentType": "text/plain"},
+        )
+        return {"contact_id": result["ContactId"], "participant_id": result["ParticipantId"], "participant_token": result["ParticipantToken"]}
+    except ClientError as exc:
+        raise connect_error(exc)
 
 
 # ---------------- Startup seed ----------------
