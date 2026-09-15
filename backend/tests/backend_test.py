@@ -201,8 +201,11 @@ class TestConnect:
         d = r.json()
         assert d["mode"] == "simulation"
         assert isinstance(d["calls"], list)
+        m = d["metrics"]
+        for k in ("AGENTS_ONLINE", "AGENTS_AVAILABLE", "CONTACTS_IN_QUEUE", "OLDEST_CONTACT_AGE"):
+            assert k in m
 
-    def test_place_call_appends_timeline(self, dealer_headers, cust_headers):
+    def test_place_call_sim_no_destination(self, dealer_headers, cust_headers):
         r = requests.post(
             f"{API}/dealer/connect/call",
             json={"incident_id": pytest.brake_id, "customer_name": "Test User", "direction": "outbound"},
@@ -211,8 +214,31 @@ class TestConnect:
         assert r.status_code == 200
         call = r.json()
         assert call["id"].startswith("CALL-")
+        assert call["mode"] == "simulation"
         # Verify timeline event appended
         r2 = requests.get(f"{API}/incidents/{pytest.brake_id}", headers=cust_headers, timeout=30)
         assert r2.status_code == 200
         notes = [t.get("note", "") for t in r2.json()["timeline"]]
-        assert any("Amazon Connect call" in n for n in notes)
+        assert any("Amazon Connect" in n and "call" in n for n in notes)
+
+    def test_chat_returns_contact_id_and_appends_timeline(self, dealer_headers, cust_headers):
+        r = requests.post(
+            f"{API}/dealer/connect/chat",
+            json={"incident_id": pytest.brake_id, "display_name": "Test User"},
+            headers=dealer_headers, timeout=30,
+        )
+        assert r.status_code == 200, r.text
+        d = r.json()
+        assert d["mode"] == "simulation"
+        assert d["contact_id"].startswith("CHAT-")
+        r2 = requests.get(f"{API}/incidents/{pytest.brake_id}", headers=cust_headers, timeout=30)
+        notes = [t.get("note", "") for t in r2.json()["timeline"]]
+        assert any("chat/SMS" in n and d["contact_id"] in n for n in notes)
+
+    def test_metrics_simulation(self, dealer_headers):
+        r = requests.get(f"{API}/dealer/connect/metrics", headers=dealer_headers, timeout=30)
+        assert r.status_code == 200
+        d = r.json()
+        assert d["mode"] == "simulation"
+        assert set(d["current"].keys()) >= {"AGENTS_ONLINE", "AGENTS_AVAILABLE", "CONTACTS_IN_QUEUE", "OLDEST_CONTACT_AGE"}
+        assert set(d["historical"].keys()) >= {"CONTACTS_HANDLED", "CONTACTS_ABANDONED", "HANDLE_TIME"}

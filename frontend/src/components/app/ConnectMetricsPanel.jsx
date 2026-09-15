@@ -47,7 +47,7 @@ export default function ConnectMetricsPanel() {
       </div>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {cards.map((x) => (
-          <div key={x.label} data-testid={`connect-kpi-${x.label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`} className="rounded-lg border border-border bg-secondary/30 p-4">
+          <div key={x.label} data-testid={`connect-kpi-${x.label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`} className="rounded-lg border border-border bg-secondary/30 p-4">
             <x.icon className="h-4 w-4 text-accent" />
             <p className="mt-2 font-heading text-2xl font-extrabold">{x.value}</p>
             <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{x.label}</p>

@@ -1,5 +1,4 @@
 import React, { useEffect, useRef } from "react";
-import "amazon-connect-streams";
 
 // Embedded Amazon Connect Contact Control Panel (agent softphone).
 // Requires AWS_CONNECT_CCP_URL in backend/.env and this origin approved in
@@ -8,19 +7,25 @@ export default function CCPSoftphone({ ccpUrl }) {
   const ref = useRef(null);
 
   useEffect(() => {
-    if (!ccpUrl || !ref.current || !window.connect) return;
-    try {
-      window.connect.core.initCCP(ref.current, {
-        ccpUrl,
-        loginPopup: true,
-        loginPopupAutoClose: true,
-        softphone: { allowFramedSoftphone: true },
-        pageOptions: { enableAudioDeviceSettings: true, enablePhoneTypeSettings: true },
-      });
-      window.connect.core.onAuthFail(() => console.error("Amazon Connect session expired"));
-    } catch (e) {
-      console.error("CCP init failed", e);
-    }
+    if (!ccpUrl || !ref.current) return;
+    let cancelled = false;
+    (async () => {
+      await import("amazon-connect-streams");
+      if (cancelled || !ref.current || !window.connect) return;
+      try {
+        window.connect.core.initCCP(ref.current, {
+          ccpUrl,
+          loginPopup: true,
+          loginPopupAutoClose: true,
+          softphone: { allowFramedSoftphone: true },
+          pageOptions: { enableAudioDeviceSettings: true, enablePhoneTypeSettings: true },
+        });
+        window.connect.core.onAuthFail(() => console.error("Amazon Connect session expired"));
+      } catch (e) {
+        console.error("CCP init failed", e);
+      }
+    })();
+    return () => { cancelled = true; };
   }, [ccpUrl]);
 
   if (!ccpUrl) {
