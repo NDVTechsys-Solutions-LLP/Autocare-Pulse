@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Activity, LogOut, ArrowUpRight, Clock, ChevronRight, TrendingUp } from "lucide-react";
+import { Activity, LogOut, ArrowUpRight, Clock, ChevronRight, TrendingUp, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -12,6 +12,8 @@ import { api, dealerCfg, API } from "@/lib/apiClient";
 import { StatusBadge, PriorityBadge } from "@/components/app/Badges";
 import KpiBar from "@/components/app/KpiBar";
 import ConnectCCP from "@/components/app/ConnectCCP";
+import CCPSoftphone from "@/components/app/CCPSoftphone";
+import ConnectMetricsPanel from "@/components/app/ConnectMetricsPanel";
 
 const STATUSES = ["ai_triaged", "assigned", "in_progress", "resolved"];
 const PRIORITY_ORDER = { High: 0, Medium: 1, Low: 2 };
@@ -56,6 +58,10 @@ export default function DealerConsole() {
   const escalate = async (id) => {
     try { const r = await api.post(`/dealer/incidents/${id}/escalate`, {}, dealerCfg()); toast.success(`Escalated to Level ${r.data.escalation_level}`); load(); }
     catch { toast.error("Escalation failed"); }
+  };
+  const startChat = async (id, name) => {
+    try { const r = await api.post(`/dealer/connect/chat`, { incident_id: id, display_name: name || "Customer" }, dealerCfg()); toast.success(`Chat/SMS opened · ${r.data.contact_id}`); load(); }
+    catch (e) { toast.error(e.response?.data?.detail || "Chat failed"); }
   };
 
   return (
@@ -130,18 +136,20 @@ export default function DealerConsole() {
           </TabsContent>
 
           {/* KPI */}
-          <TabsContent value="kpi" className="mt-4">
+          <TabsContent value="kpi" className="mt-4 space-y-5">
+            <ConnectMetricsPanel />
             {kpis && <KpiCharts kpis={kpis} incidents={incidents} />}
           </TabsContent>
 
           {/* CONNECT */}
-          <TabsContent value="connect" className="mt-4 max-w-xl">
+          <TabsContent value="connect" className="mt-4 grid gap-5 lg:grid-cols-2">
             {connect && <ConnectCCP status={connect} onCall={load} />}
+            <CCPSoftphone ccpUrl={connect?.ccp_url} />
           </TabsContent>
         </Tabs>
       </main>
 
-      <DealerDetail incident={selected} team={team} onClose={() => setSelected(null)} onUpdate={update} onEscalate={escalate} />
+      <DealerDetail incident={selected} team={team} onClose={() => setSelected(null)} onUpdate={update} onEscalate={escalate} onChat={startChat} />
     </div>
   );
 }
@@ -208,7 +216,7 @@ function KpiCharts({ kpis, incidents }) {
   );
 }
 
-function DealerDetail({ incident, team, onClose, onUpdate, onEscalate }) {
+function DealerDetail({ incident, team, onClose, onUpdate, onEscalate, onChat }) {
   if (!incident) return null;
   return (
     <Dialog open={!!incident} onOpenChange={(o) => !o && onClose()}>
@@ -252,6 +260,12 @@ function DealerDetail({ incident, team, onClose, onUpdate, onEscalate }) {
                 <SelectContent>{STATUSES.map((s) => <SelectItem key={s} value={s}>{s.replace(/_/g, " ")}</SelectItem>)}</SelectContent>
               </Select>
             </div>
+          </div>
+
+          <div className="flex gap-2">
+            <Button data-testid="chat-btn" onClick={() => onChat(incident.id, incident.customer_name)} variant="outline" className="flex-1 rounded-full border-accent/40 text-accent hover:bg-accent/10">
+              <MessageSquare className="mr-1.5 h-4 w-4" /> Start Chat / SMS
+            </Button>
           </div>
 
           <div className="flex gap-2">

@@ -581,22 +581,80 @@ async def connect_call(body: dict, dealer=Depends(get_current_dealer)):
 
 @api_router.post("/dealer/connect/chat")
 async def connect_chat(body: dict, dealer=Depends(get_current_dealer)):
-    if not connect_configured():
-        raise HTTPException(status_code=400, detail="Amazon Connect is not configured — add AWS credentials to enable chat")
-    try:
-        result = get_connect_client().start_chat_contact(
-            InstanceId=os.environ["AWS_CONNECT_INSTANCE_ID"],
-            ContactFlowId=os.environ["AWS_CONNECT_CONTACT_FLOW_ID"],
-            ParticipantDetails={"DisplayName": body.get("display_name", "Customer")},
-            SupportedMessagingContentTypes=["text/plain"],
-            ChatDurationInMinutes=60,
-            ClientToken=f"chat-{uuid.uuid4().hex[:8]}",
-            Attributes={"incidentId": str(body.get("incident_id") or "")},
-            InitialMessage={"Content": body.get("message", "Hello"), "ContentType": "text/plain"},
-        )
-        return {"contact_id": result["ContactId"], "participant_id": result["ParticipantId"], "participant_token": result["ParticipantToken"]}
-    except ClientError as exc:
-        raise connect_error(exc)
+    inc = body.get("incident_id")
+    if connect_configured():
+        try:
+            result = get_connect_client().start_chat_contact(
+                InstanceId=os.environ["AWS_CONNECT_INSTANCE_ID"],
+                ContactFlowId=os.environ["AWS_CONNECT_CONTACT_FLOW_ID"],
+                ParticipantDetails={"DisplayName": body.get("display_name", "Customer")},
+                SupportedMessagingContentTypes=["text/plain"],
+                ChatDurationInMinutes=60,
+                ClientToken=f"chat-{uuid.uuid4().hex[:8]}",
+                Attributes={"incidentId": str(inc or "")},
+                InitialMessage={"Content": body.get("message", "Hello from AutoCare service."), "ContentType": "text/plain"},
+            )
+            contact_id = result["ContactId"]
+            resp = {"mode": "live", "contact_id": contact_id, "participant_id": result["ParticipantId"], "participant_token": result["ParticipantToken"]}
+        except ClientError as exc:
+            raise connect_error(exc)
+    else:
+        contact_id = f"CHAT-{uuid.uuid4().hex[:6].upper()}"
+        resp = {"mode": "simulation", "contact_id": contact_id, "participant_id": None, "participant_token": None}
+    await db.connect_calls.insert_one({
+        "id": contact_id, "contact_id": contact_id, "incident_id": inc,
+        "customer_name": body.get("display_name", "Customer"), "destination": "",
+        "direction": "chat", "channel": "CHAT/SMS", "agent": dealer["name"],
+        "status": "open", "mode": resp["mode"], "started_at": iso(now_utc()),
+        "transcript": "Amazon Connect chat/SMS session opened." + ("" if resp["mode"] == "live" else " (simulation)"),
+    })
+    if inc:
+        await db.incidents.update_one({"id": inc}, {"$push": {"timeline": {"status": "in_progress", "at": iso(now_utc()), "note": f"Amazon Connect chat/SMS {contact_id} opened by {dealer['name']}"}}})
+    return resp
+
+
+@api_router.get("/dealer/connect/metrics")
+async def connect_metrics(dealer=Depends(get_current_dealer)):
+    if connect_configured():
+        current = {"AGENTS_ONLINE": 0, "AGENTS_AVAILABLE": 0, "CONTACTS_IN_QUEUE": 0, "OLDEST_CONTACT_AGE": 0}
+        try:
+            current.update(await connect_live_metrics())
+        except Exception as e:
+            logger.error(f"Connect current metrics failed: {e}")
+        historical = {"CONTACTS_HANDLED": 0, "CONTACTS_ABANDONED": 0, "HANDLE_TIME": 0}
+        try:
+            client = get_connect_client()
+            now = now_utc()
+            end = now.replace(minute=(now.minute // 5) * 5, second=0, microsecond=0)
+            start = end - timedelta(hours=1)
+            data = client.get_metric_data(
+                InstanceId=os.environ["AWS_CONNECT_INSTANCE_ID"],
+                StartTime=start, EndTime=end,
+                Filters={"Channels": ["VOICE"]}, Groupings=["CHANNEL"],
+                HistoricalMetrics=[
+                    {"Name": "CONTACTS_HANDLED", "Unit": "COUNT", "Statistic": "SUM"},
+                    {"Name": "CONTACTS_ABANDONED", "Unit": "COUNT", "Statistic": "SUM"},
+                    {"Name": "HANDLE_TIME", "Unit": "SECONDS", "Statistic": "AVG"},
+                ],
+                MaxResults=100,
+            )
+            for res in data.get("MetricResults", []):
+                for m in res.get("Collections", []):
+                    historical[m["Metric"]["Name"]] = m.get("Value", 0)
+        except Exception as e:
+            logger.error(f"Connect historical metrics failed: {e}")
+        return {"mode": "live", "current": current, "historical": historical}
+    open_count = await db.incidents.count_documents({"status": {"$ne": "resolved"}})
+    resolved_count = await db.incidents.count_documents({"status": "resolved"})
+    tech = await db.dealers.count_documents({"role": "technician"})
+    docs = await db.incidents.find({"status": "resolved"}, {"_id": 0, "created_at": 1, "resolved_at": 1}).to_list(1000)
+    times = [(parse_dt(d["resolved_at"]) - parse_dt(d["created_at"])).total_seconds() for d in docs if d.get("resolved_at")]
+    avg = sum(times) / len(times) if times else 0
+    return {
+        "mode": "simulation",
+        "current": {"AGENTS_ONLINE": tech, "AGENTS_AVAILABLE": max(tech - 1, 0), "CONTACTS_IN_QUEUE": open_count, "OLDEST_CONTACT_AGE": 0},
+        "historical": {"CONTACTS_HANDLED": resolved_count, "CONTACTS_ABANDONED": 0, "HANDLE_TIME": round(avg)},
+    }
 
 
 # ---------------- Startup seed ----------------
