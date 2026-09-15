@@ -201,11 +201,18 @@ function NewIncidentDialog({ open, onOpenChange, onCreated }) {
 
 function DetailDialog({ incident, onClose }) {
   const [cbPhone, setCbPhone] = useState("");
+  const [cbWhen, setCbWhen] = useState("");
   const [cbBusy, setCbBusy] = useState(false);
   const requestCallback = async () => {
     if (!cbPhone.trim()) { toast.error("Enter your phone number"); return; }
     setCbBusy(true);
-    try { await api.post(`/incidents/${incident.id}/callback`, { phone: cbPhone.trim() }); toast.success("Callback requested — the dealer team will call you back"); setCbPhone(""); }
+    try {
+      const payload = { phone: cbPhone.trim() };
+      if (cbWhen) payload.scheduled_at = new Date(cbWhen).toISOString();
+      await api.post(`/incidents/${incident.id}/callback`, payload);
+      toast.success(cbWhen ? "Callback scheduled — we'll call at your chosen time" : "Callback requested — the dealer team will call you back");
+      setCbPhone(""); setCbWhen("");
+    }
     catch (e) { toast.error(e.response?.data?.detail || "Request failed"); }
     finally { setCbBusy(false); }
   };
@@ -253,6 +260,8 @@ function DetailDialog({ incident, onClose }) {
                 <PhoneCall className="mr-1.5 h-4 w-4" /> {cbBusy ? "Requesting…" : "Call Me"}
               </Button>
             </div>
+            <input data-testid="callback-time-input" type="datetime-local" value={cbWhen} onChange={(e) => setCbWhen(e.target.value)} className="mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground" />
+            <p className="mt-1 font-mono text-[10px] text-muted-foreground">Pick a time to schedule the callback, or leave empty to be called as soon as possible.</p>
           </div>
 
           <ChatThread incidentId={incident.id} role="customer" />

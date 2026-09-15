@@ -1,0 +1,8 @@
+crons:
+  - name: due-callbacks
+    description: "Places customer-scheduled callbacks into the Amazon Connect queue when their chosen time arrives"
+    cron: "*/15 * * * *"
+    endpoint: "{{BASE_URL}}/api/cron/callbacks"
+    method: POST
+    # Cron endpoints must ack 2xx immediately; enqueue/background the actual work.
+    enabled: true

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, Header, Query, Request, Response, UploadFile, File, Form
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, Header, Query, Request, Response, UploadFile, File, Form, BackgroundTasks
 from fastapi.responses import Response as FastResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -14,6 +14,12 @@ import jwt as pyjwt
 import requests
 import boto3
 from botocore.exceptions import ClientError
+import hmac
+import ipaddress
+import httpx
+from html import escape
+from html.parser import HTMLParser
+from urllib.parse import urlparse
 from pathlib import Path
 from pydantic import BaseModel, Field
 from typing import List, Optional
@@ -112,6 +118,104 @@ class IncidentUpdate(BaseModel):
     assignee_id: Optional[str] = None
     priority: Optional[str] = None
     note: Optional[str] = None
+
+
+# ---------------- Email (Emergent-managed Resend) ----------------
+EMAIL_BASE_URL = "https://integrations.emergentagent.com"
+EMAIL_KEY = os.environ.get("EMERGENT_EMAIL_KEY")
+EMAIL_FROM_NAME = os.environ.get("EMAIL_FROM_NAME", "AutoCare Pulse")
+EMAIL_REPLY_TO = os.environ.get("EMAIL_REPLY_TO")
+_SHORTENERS = ("bit.ly", "tinyurl.com", "t.co", "is.gd", "cutt.ly", "goo.gl", "rebrand.ly")
+_HOSTISH = re.compile(r"\b(?:https?://)?((?:[a-z0-9-]+\.)+[a-z]{2,})", re.I)
+
+
+def _host_ok(host: str) -> bool:
+    if not host or "xn--" in host:
+        return False
+    try:
+        ipaddress.ip_address(host)
+        return False
+    except ValueError:
+        pass
+    return not any(host == s or host.endswith("." + s) for s in _SHORTENERS)
+
+
+def _same_site(shown: str, real: str) -> bool:
+    return shown == real or real.endswith("." + shown) or shown.endswith("." + real)
+
+
+class _EmailScan(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.tags, self.urls, self.anchors = set(), [], []
+        self._href, self._text = None, []
+
+    def handle_starttag(self, tag, attrs):
+        self.tags.add(tag.lower())
+        self.urls += [v for k, v in attrs if k.lower() in ("href", "src") and v]
+        if tag.lower() == "a":
+            self._href = dict((k.lower(), v) for k, v in attrs).get("href")
+            self._text = []
+
+    def handle_data(self, data):
+        if self._href is not None:
+            self._text.append(data)
+
+    def handle_endtag(self, tag):
+        if tag.lower() == "a" and self._href is not None:
+            self.anchors.append((self._href, "".join(self._text)))
+            self._href, self._text = None, []
+
+
+def _assert_safe_email(subject: str, html: str) -> None:
+    scan = _EmailScan(); scan.feed(html)
+    if scan.tags & {"form", "input", "textarea", "select"}:
+        raise ValueError("No forms or input fields in email (G2)")
+    for url in scan.urls:
+        low = url.strip().lower()
+        if low.startswith(("mailto:", "tel:", "cid:", "#")):
+            continue
+        if not low.startswith("https://"):
+            raise ValueError(f"Email links/assets must be absolute https: {url!r} (G3)")
+        host = urlparse(low).hostname or ""
+        if not _host_ok(host) or urlparse(low).username is not None:
+            raise ValueError(f"Shortened, numeric-host or credential-bearing URL: {url!r} (G3)")
+    for href, text in scan.anchors:
+        real = urlparse(href.strip().lower()).hostname or ""
+        if not real:
+            continue
+        for m in _HOSTISH.finditer(text):
+            if not _same_site(m.group(1).lower(), real):
+                raise ValueError(f"Anchor text {m.group(1)!r} != real link host {real!r} (G3)")
+
+
+async def send_email(*, to: str, subject: str, html: str) -> None:
+    _assert_safe_email(subject, html)
+    payload = {"to": [to], "subject": subject, "html": html, "from_name": EMAIL_FROM_NAME}
+    if EMAIL_REPLY_TO:
+        payload["contact_email"] = EMAIL_REPLY_TO
+    async with httpx.AsyncClient(timeout=30) as client:
+        resp = await client.post(f"{EMAIL_BASE_URL}/api/v1/email/send", headers={"X-Email-Key": EMAIL_KEY}, json=payload)
+    resp.raise_for_status()
+
+
+async def notify_customer_chat(inc, agent_name, text):
+    try:
+        link = (os.environ.get("APP_BASE_URL") or "").rstrip("/") + "/dashboard"
+        subject = f"New reply on your {EMAIL_FROM_NAME} incident {inc['id']}"
+        html = (
+            f'<table role="presentation" width="100%"><tr><td style="padding:24px;font-family:Arial,sans-serif;color:#111">'
+            f'<p>Hi {escape(inc.get("customer_name") or "there")},</p>'
+            f'<p><strong>{escape(agent_name)}</strong> replied on your incident <strong>{escape(inc["id"])}</strong>'
+            f' ({escape(inc.get("vehicle_model", ""))}):</p>'
+            f'<blockquote style="border-left:3px solid #E63946;margin:0;padding:8px 16px;color:#333">{escape(text)}</blockquote>'
+            f'<p><a href="{escape(link)}" style="display:inline-block;background:#E63946;color:#fff;padding:10px 18px;border-radius:999px;text-decoration:none">Open your incident</a></p>'
+            f'<p style="font-size:12px;color:#888">Sent by {escape(EMAIL_FROM_NAME)}. We never ask for your password or card details by email.</p>'
+            f'</td></tr></table>'
+        )
+        await send_email(to=inc["customer_email"], subject=subject, html=html)
+    except Exception as e:
+        logger.error(f"chat email notify failed: {e}")
 
 
 # ---------------- Auth helpers ----------------
@@ -704,7 +808,11 @@ async def dealer_chat_send(inc_id: str, body: dict, dealer=Depends(get_current_d
     text = (body.get("text") or "").strip()
     if not text:
         raise HTTPException(status_code=400, detail="Message required")
-    return await _add_chat_message(inc_id, "agent", dealer["name"], text)
+    msg = await _add_chat_message(inc_id, "agent", dealer["name"], text)
+    inc = await db.incidents.find_one({"id": inc_id}, {"_id": 0})
+    if inc and inc.get("customer_email"):
+        await notify_customer_chat(inc, dealer["name"], text)
+    return msg
 
 
 @api_router.get("/dealer/connect/recordings/{inc_id}")
@@ -724,6 +832,29 @@ async def get_recording(call_id: str, dealer=Depends(get_current_dealer)):
         try:
             url = get_s3_client().generate_presigned_url("get_object", Params={"Bucket": bucket, "Key": call["recording_key"]}, ExpiresIn=3600)
             return {"url": url, "source": "s3"}
+        except ClientError as exc:
+            raise connect_error(exc)
+    if connect_configured() and bucket and not call.get("recording_key") and call.get("contact_id"):
+        try:
+            s3 = get_s3_client()
+            prefix = (os.environ.get("AWS_CONNECT_RECORDINGS_PREFIX") or "").strip()
+            token = None
+            while True:
+                kw = {"Bucket": bucket, "MaxKeys": 1000}
+                if prefix:
+                    kw["Prefix"] = prefix
+                if token:
+                    kw["ContinuationToken"] = token
+                resp = s3.list_objects_v2(**kw)
+                for obj in resp.get("Contents", []):
+                    if call["contact_id"] in obj["Key"]:
+                        await db.connect_calls.update_one({"id": call_id}, {"$set": {"recording_key": obj["Key"]}})
+                        url = s3.generate_presigned_url("get_object", Params={"Bucket": bucket, "Key": obj["Key"]}, ExpiresIn=3600)
+                        return {"url": url, "source": "s3-auto"}
+                if resp.get("IsTruncated"):
+                    token = resp.get("NextContinuationToken")
+                else:
+                    break
         except ClientError as exc:
             raise connect_error(exc)
     raise HTTPException(status_code=404, detail="Recording not available yet. It appears once the call ends and Amazon Connect syncs it to S3.")
@@ -784,12 +915,22 @@ async def request_callback(inc_id: str, body: dict, user=Depends(get_current_use
     phone = (body.get("phone") or "").strip()
     if not phone:
         raise HTTPException(status_code=400, detail="Phone number required")
-    contact_id = None
+    scheduled_raw = (body.get("scheduled_at") or "").strip()
+    scheduled_at = None
+    if scheduled_raw:
+        try:
+            scheduled_at = parse_dt(scheduled_raw)
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid scheduled time")
     live = connect_configured()
-    status = "pending"
-    if live:
+    contact_id = None
+    if scheduled_at and scheduled_at > now_utc():
+        status = "scheduled"
+    elif live:
         contact_id, _ = await _place_outbound(phone, inc_id, "Callback")
         status = "placed"
+    else:
+        status = "pending"
     cb = {
         "id": f"CB-{uuid.uuid4().hex[:6].upper()}",
         "incident_id": inc_id,
@@ -798,11 +939,17 @@ async def request_callback(inc_id: str, body: dict, user=Depends(get_current_use
         "phone": phone,
         "status": status,
         "contact_id": contact_id,
+        "scheduled_at": iso(scheduled_at) if scheduled_at else None,
         "mode": "live" if live else "simulation",
         "created_at": iso(now_utc()),
     }
     await db.callbacks.insert_one(dict(cb))
-    note = f"Customer requested a callback on {phone}" + (f" — routed to Amazon Connect ({contact_id})" if contact_id else " — queued for the dealer team")
+    if status == "scheduled":
+        note = f"Customer scheduled a callback on {phone} for {iso(scheduled_at)}"
+    elif contact_id:
+        note = f"Customer requested a callback on {phone} — routed to Amazon Connect ({contact_id})"
+    else:
+        note = f"Customer requested a callback on {phone} — queued for the dealer team"
     await db.incidents.update_one({"id": inc_id}, {"$push": {"timeline": {"status": inc["status"], "at": iso(now_utc()), "note": note}}})
     return cb
 
@@ -828,6 +975,39 @@ async def place_callback(cb_id: str, dealer=Depends(get_current_dealer)):
         note = f"Callback {cb_id} placed to {cb['phone']} by {dealer['name']}" + (f" (ContactId {contact_id})" if contact_id else "")
         await db.incidents.update_one({"id": cb["incident_id"]}, {"$push": {"timeline": {"status": "in_progress", "at": iso(now_utc()), "note": note}}})
     return {"ok": True, "contact_id": contact_id, "status": "placed"}
+
+
+async def process_due_callbacks():
+    now = now_utc()
+    due = await db.callbacks.find({"status": "scheduled"}, {"_id": 0}).to_list(500)
+    for cb in due:
+        try:
+            if parse_dt(cb.get("scheduled_at")) > now:
+                continue
+        except Exception:
+            continue
+        contact_id = None
+        try:
+            contact_id, live = await _place_outbound(cb["phone"], cb["incident_id"], "Scheduler")
+            new_status = "placed" if live else "pending"
+        except Exception as e:
+            logger.error(f"scheduled callback {cb['id']} placement failed: {e}")
+            new_status = "pending"
+        await db.callbacks.update_one({"id": cb["id"]}, {"$set": {"status": new_status, "contact_id": contact_id}})
+        if cb.get("incident_id"):
+            note = f"Scheduled callback {cb['id']} due — " + (f"routed to Amazon Connect ({contact_id})" if contact_id else "queued for the dealer team")
+            await db.incidents.update_one({"id": cb["incident_id"]}, {"$push": {"timeline": {"status": "in_progress", "at": iso(now_utc()), "note": note}}})
+
+
+@api_router.post("/cron/callbacks")
+async def cron_callbacks(background_tasks: BackgroundTasks, authorization: Optional[str] = Header(None)):
+    # Cron endpoints must ack 2xx immediately; enqueue/background the actual work.
+    secret = os.environ.get("WEBHOOK_CRON_SECRET", "")
+    token = authorization.split(" ", 1)[1] if authorization and authorization.startswith("Bearer ") else ""
+    if not secret or not hmac.compare_digest(token, secret):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    background_tasks.add_task(process_due_callbacks)
+    return {"ok": True, "accepted": True}
 
 
 # ---------------- Startup seed ----------------
