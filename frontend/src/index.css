@@ -1,0 +1,90 @@
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  margin: 0;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.font-heading { font-family: 'Barlow Condensed', sans-serif; }
+.font-body { font-family: 'Plus Jakarta Sans', sans-serif; }
+.font-mono { font-family: 'JetBrains Mono', monospace; }
+
+@layer base {
+  :root {
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 0 72% 51%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 199 89% 48%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 199 89% 48%;
+    --radius: 0.75rem;
+  }
+  .dark {
+    --background: 220 45% 5%;
+    --foreground: 210 40% 98%;
+    --card: 222 40% 10%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222 40% 10%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 355 78% 56%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217 33% 15%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 187 100% 50%;
+    --accent-foreground: 220 45% 5%;
+    --destructive: 351 100% 58%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 221 39% 20%;
+    --input: 221 39% 20%;
+    --ring: 187 100% 50%;
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+  body { @apply bg-background text-foreground; }
+}
+
+::selection { background: hsl(var(--accent) / 0.3); }
+
+.ac-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+.ac-scroll::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 8px; }
+.ac-scroll::-webkit-scrollbar-track { background: transparent; }
+
+@keyframes ac-pulse-ring {
+  0% { transform: scale(0.9); opacity: 0.7; }
+  70% { transform: scale(1.6); opacity: 0; }
+  100% { opacity: 0; }
+}
+.ac-pulse-ring { animation: ac-pulse-ring 1.6s cubic-bezier(0.4,0,0.6,1) infinite; }
+
+@keyframes ac-fade-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.ac-fade-up { animation: ac-fade-up 0.5s ease forwards; }
+
+.ac-grid-bg {
+  background-image: radial-gradient(hsl(var(--border) / 0.5) 1px, transparent 1px);
+  background-size: 32px 32px;
+}

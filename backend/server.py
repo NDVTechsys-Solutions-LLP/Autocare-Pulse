@@ -1,0 +1,524 @@
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, Header, Query, Request, Response, UploadFile, File, Form
+from fastapi.responses import Response as FastResponse
+from dotenv import load_dotenv
+from starlette.middleware.cors import CORSMiddleware
+from motor.motor_asyncio import AsyncIOMotorClient
+import os
+import re
+import json
+import logging
+import uuid
+import tempfile
+import bcrypt
+import jwt as pyjwt
+import requests
+from pathlib import Path
+from pydantic import BaseModel, Field
+from typing import List, Optional
+from datetime import datetime, timezone, timedelta
+
+from emergentintegrations.llm.chat import LlmChat, UserMessage, TextDelta, StreamDone, ImageContent
+from emergentintegrations.llm.openai import OpenAISpeechToText
+
+ROOT_DIR = Path(__file__).parent
+load_dotenv(ROOT_DIR / '.env')
+
+mongo_url = os.environ['MONGO_URL']
+client = AsyncIOMotorClient(mongo_url)
+db = client[os.environ['DB_NAME']]
+
+EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY")
+JWT_SECRET = os.environ.get("JWT_SECRET", "dev_secret")
+
+# Object storage config
+STORAGE_BASE = (os.environ.get("INTEGRATION_PROXY_URL") or "").strip() or "https://integrations.emergentagent.com"
+STORAGE_URL = STORAGE_BASE.rstrip("/") + "/objstore/api/v1/storage"
+APP_NAME = "autocare-pulse"
+storage_key = None
+
+MIME_TYPES = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png", "webp": "image/webp"}
+PRIORITY_SLA = {"High": 4, "Medium": 24, "Low": 72}
+ESCALATION_LEVELS = ["Dealer Service Manager", "OEM Regional Lead", "OEM Quality Head"]
+
+app = FastAPI()
+api_router = APIRouter(prefix="/api")
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+
+def now_utc():
+    return datetime.now(timezone.utc)
+
+
+def iso(dt):
+    return dt.isoformat() if isinstance(dt, datetime) else dt
+
+
+def parse_dt(v):
+    if isinstance(v, str):
+        v = datetime.fromisoformat(v)
+    if v.tzinfo is None:
+        v = v.replace(tzinfo=timezone.utc)
+    return v
+
+
+# ---------------- Storage ----------------
+def init_storage(force: bool = False):
+    global storage_key
+    if storage_key and not force:
+        return storage_key
+    resp = requests.post(f"{STORAGE_URL}/init", json={"emergent_key": EMERGENT_LLM_KEY}, timeout=30)
+    resp.raise_for_status()
+    storage_key = resp.json()["storage_key"]
+    return storage_key
+
+
+def put_object(path: str, data: bytes, content_type: str) -> dict:
+    key = init_storage()
+    resp = requests.put(f"{STORAGE_URL}/objects/{path}", headers={"X-Storage-Key": key, "Content-Type": content_type}, data=data, timeout=120)
+    if resp.status_code == 404:
+        key = init_storage(force=True)
+        resp = requests.put(f"{STORAGE_URL}/objects/{path}", headers={"X-Storage-Key": key, "Content-Type": content_type}, data=data, timeout=120)
+    resp.raise_for_status()
+    return resp.json()
+
+
+def get_object(path: str):
+    key = init_storage()
+    resp = requests.get(f"{STORAGE_URL}/objects/{path}", headers={"X-Storage-Key": key}, timeout=60)
+    resp.raise_for_status()
+    return resp.content, resp.headers.get("Content-Type", "application/octet-stream")
+
+
+# ---------------- Models ----------------
+class DealerLogin(BaseModel):
+    email: str
+    password: str
+
+
+class IncidentCreate(BaseModel):
+    title: Optional[str] = None
+    description: str
+    vehicle_model: str
+    vehicle_vin: Optional[str] = ""
+    source: str = "manual"  # manual | voice
+    photo_paths: List[str] = []
+
+
+class IncidentUpdate(BaseModel):
+    status: Optional[str] = None
+    assignee_id: Optional[str] = None
+    priority: Optional[str] = None
+    note: Optional[str] = None
+
+
+# ---------------- Auth helpers ----------------
+async def get_current_user(request: Request, authorization: Optional[str] = Header(None)):
+    token = request.cookies.get("session_token")
+    if not token and authorization and authorization.startswith("Bearer "):
+        token = authorization.split(" ", 1)[1]
+    if not token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    session = await db.user_sessions.find_one({"session_token": token}, {"_id": 0})
+    if not session:
+        raise HTTPException(status_code=401, detail="Invalid session")
+    if parse_dt(session["expires_at"]) < now_utc():
+        raise HTTPException(status_code=401, detail="Session expired")
+    user = await db.users.find_one({"user_id": session["user_id"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
+    return user
+
+
+async def get_current_dealer(authorization: Optional[str] = Header(None)):
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    token = authorization.split(" ", 1)[1]
+    try:
+        payload = pyjwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    dealer = await db.dealers.find_one({"dealer_id": payload.get("dealer_id")}, {"_id": 0, "password_hash": 0})
+    if not dealer:
+        raise HTTPException(status_code=401, detail="Dealer not found")
+    return dealer
+
+
+# ---------------- AI ----------------
+async def ai_classify(description: str, vehicle_model: str, image_b64: Optional[str] = None):
+    system = (
+        "You are an automotive service triage AI for vehicle & two-wheeler dealers. "
+        "Classify the customer incident. Return ONLY valid minified JSON with keys: "
+        "category (one of: Engine, Electrical, Brakes, Body, Tyres, Transmission, Battery, Other), "
+        "severity (integer 1-5, 5 = safety critical), "
+        "priority (one of: High, Medium, Low), "
+        "summary (short one-line summary), "
+        "recommended_action (short technician instruction). No prose, no markdown."
+    )
+    prompt = f"Vehicle: {vehicle_model}\nCustomer report: {description}"
+    if image_b64:
+        prompt += "\nAn image of the vehicle issue is attached. Factor visible damage into the assessment."
+    try:
+        chat = LlmChat(api_key=EMERGENT_LLM_KEY, session_id=f"triage-{uuid.uuid4().hex[:8]}", system_message=system).with_model("openai", "gpt-5.4")
+        if image_b64:
+            msg = UserMessage(text=prompt, file_contents=[ImageContent(image_base64=image_b64)])
+        else:
+            msg = UserMessage(text=prompt)
+        out = ""
+        async for ev in chat.stream_message(msg):
+            if isinstance(ev, TextDelta):
+                out += ev.content
+            elif isinstance(ev, StreamDone):
+                break
+        out = out.strip()
+        m = re.search(r"\{.*\}", out, re.DOTALL)
+        data = json.loads(m.group(0) if m else out)
+        prio = data.get("priority", "Medium")
+        if prio not in PRIORITY_SLA:
+            prio = "Medium"
+        return {
+            "category": data.get("category", "Other"),
+            "severity": int(data.get("severity", 3)),
+            "priority": prio,
+            "summary": data.get("summary", description[:80]),
+            "recommended_action": data.get("recommended_action", ""),
+        }
+    except Exception as e:
+        logger.error(f"AI classify failed: {e}")
+        return {"category": "Other", "severity": 3, "priority": "Medium", "summary": description[:80], "recommended_action": "Manual triage required.", "ai_error": True}
+
+
+# ---------------- Auth routes ----------------
+@api_router.post("/auth/session")
+async def auth_session(request: Request, response: Response):
+    body = await request.json()
+    session_id = body.get("session_id")
+    if not session_id:
+        raise HTTPException(status_code=400, detail="session_id required")
+    r = requests.get("https://demobackend.emergentagent.com/auth/v1/env/oauth/session-data", headers={"X-Session-ID": session_id}, timeout=30)
+    if r.status_code != 200:
+        raise HTTPException(status_code=401, detail="Invalid session_id")
+    data = r.json()
+    existing = await db.users.find_one({"email": data["email"]}, {"_id": 0})
+    if existing:
+        user_id = existing["user_id"]
+        await db.users.update_one({"user_id": user_id}, {"$set": {"name": data.get("name"), "picture": data.get("picture")}})
+    else:
+        user_id = f"user_{uuid.uuid4().hex[:12]}"
+        await db.users.insert_one({"user_id": user_id, "email": data["email"], "name": data.get("name"), "picture": data.get("picture"), "role": "customer", "created_at": iso(now_utc())})
+    session_token = data["session_token"]
+    expires_at = now_utc() + timedelta(days=7)
+    await db.user_sessions.insert_one({"user_id": user_id, "session_token": session_token, "expires_at": iso(expires_at), "created_at": iso(now_utc())})
+    response.set_cookie("session_token", session_token, httponly=True, secure=True, samesite="none", path="/", max_age=7 * 24 * 3600)
+    user = await db.users.find_one({"user_id": user_id}, {"_id": 0})
+    return user
+
+
+@api_router.get("/auth/me")
+async def auth_me(user=Depends(get_current_user)):
+    return user
+
+
+@api_router.post("/auth/logout")
+async def auth_logout(request: Request, response: Response):
+    token = request.cookies.get("session_token")
+    if token:
+        await db.user_sessions.delete_one({"session_token": token})
+    response.delete_cookie("session_token", path="/")
+    return {"ok": True}
+
+
+@api_router.post("/auth/dealer/login")
+async def dealer_login(body: DealerLogin):
+    dealer = await db.dealers.find_one({"email": body.email.lower()})
+    if not dealer or not bcrypt.checkpw(body.password.encode(), dealer["password_hash"].encode()):
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    token = pyjwt.encode({"dealer_id": dealer["dealer_id"], "exp": now_utc() + timedelta(days=7)}, JWT_SECRET, algorithm="HS256")
+    return {"token": token, "dealer": {"dealer_id": dealer["dealer_id"], "email": dealer["email"], "name": dealer["name"], "role": dealer["role"]}}
+
+
+@api_router.get("/auth/dealer/me")
+async def dealer_me(dealer=Depends(get_current_dealer)):
+    return dealer
+
+
+# ---------------- Files ----------------
+@api_router.post("/upload")
+async def upload(file: UploadFile = File(...), user=Depends(get_current_user)):
+    ext = (file.filename.rsplit(".", 1)[-1] if "." in file.filename else "bin").lower()
+    ct = MIME_TYPES.get(ext, file.content_type or "application/octet-stream")
+    path = f"{APP_NAME}/uploads/{user['user_id']}/{uuid.uuid4()}.{ext}"
+    data = await file.read()
+    result = put_object(path, data, ct)
+    await db.files.insert_one({"id": str(uuid.uuid4()), "storage_path": result["path"], "original_filename": file.filename, "content_type": ct, "size": result.get("size", len(data)), "user_id": user["user_id"], "is_deleted": False, "created_at": iso(now_utc())})
+    return {"path": result["path"]}
+
+
+@api_router.get("/files/{path:path}")
+async def serve_file(path: str):
+    record = await db.files.find_one({"storage_path": path, "is_deleted": False}, {"_id": 0})
+    if not record:
+        raise HTTPException(status_code=404, detail="File not found")
+    data, ct = get_object(path)
+    return FastResponse(content=data, media_type=record.get("content_type", ct))
+
+
+# ---------------- Voice ----------------
+@api_router.post("/voice/transcribe")
+async def transcribe(file: UploadFile = File(...), user=Depends(get_current_user)):
+    data = await file.read()
+    suffix = "." + (file.filename.rsplit(".", 1)[-1] if "." in file.filename else "webm")
+    with tempfile.NamedTemporaryFile(delete=True, suffix=suffix) as tmp:
+        tmp.write(data)
+        tmp.flush()
+        tmp.seek(0)
+        stt = OpenAISpeechToText(api_key=EMERGENT_LLM_KEY)
+        with open(tmp.name, "rb") as af:
+            resp = await stt.transcribe(file=af, model="whisper-1", response_format="json")
+    return {"text": getattr(resp, "text", "")}
+
+
+# ---------------- Incidents ----------------
+def incident_public(doc):
+    doc = dict(doc)
+    doc.pop("_id", None)
+    return doc
+
+
+async def build_incident(user, payload: IncidentCreate, image_b64=None):
+    ai = await ai_classify(payload.description, payload.vehicle_model, image_b64)
+    created = now_utc()
+    sla_hours = PRIORITY_SLA[ai["priority"]]
+    inc_id = f"INC-{uuid.uuid4().hex[:8].upper()}"
+    doc = {
+        "id": inc_id,
+        "user_id": user["user_id"],
+        "customer_name": user.get("name"),
+        "customer_email": user.get("email"),
+        "customer_picture": user.get("picture"),
+        "title": payload.title or ai["summary"],
+        "description": payload.description,
+        "vehicle_model": payload.vehicle_model,
+        "vehicle_vin": payload.vehicle_vin or "",
+        "source": payload.source,
+        "photo_paths": payload.photo_paths,
+        "category": ai["category"],
+        "severity": ai["severity"],
+        "priority": ai["priority"],
+        "ai_summary": ai["summary"],
+        "recommended_action": ai["recommended_action"],
+        "ai_error": ai.get("ai_error", False),
+        "status": "ai_triaged",
+        "assignee_id": None,
+        "assignee_name": None,
+        "escalation_level": 0,
+        "sla_hours": sla_hours,
+        "sla_due": iso(created + timedelta(hours=sla_hours)),
+        "created_at": iso(created),
+        "resolved_at": None,
+        "timeline": [
+            {"status": "submitted", "at": iso(created), "note": f"Incident raised via {payload.source}"},
+            {"status": "ai_triaged", "at": iso(created), "note": f"AI triage: {ai['category']} / {ai['priority']} priority (severity {ai['severity']}/5)"},
+        ],
+    }
+    await db.incidents.insert_one(doc)
+    return incident_public(await db.incidents.find_one({"id": inc_id}, {"_id": 0}))
+
+
+@api_router.post("/incidents")
+async def create_incident(payload: IncidentCreate, user=Depends(get_current_user)):
+    image_b64 = None
+    if payload.photo_paths:
+        try:
+            raw, _ = get_object(payload.photo_paths[0])
+            import base64
+            image_b64 = base64.b64encode(raw).decode()
+        except Exception as e:
+            logger.error(f"image load for AI failed: {e}")
+    return await build_incident(user, payload, image_b64)
+
+
+@api_router.get("/incidents")
+async def list_incidents(user=Depends(get_current_user)):
+    docs = await db.incidents.find({"user_id": user["user_id"]}, {"_id": 0}).sort("created_at", -1).to_list(500)
+    return docs
+
+
+@api_router.get("/incidents/{inc_id}")
+async def get_incident(inc_id: str, user=Depends(get_current_user)):
+    doc = await db.incidents.find_one({"id": inc_id, "user_id": user["user_id"]}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Not found")
+    return doc
+
+
+# ---------------- Dealer incident ops ----------------
+def with_sla_flags(docs):
+    now = now_utc()
+    out = []
+    for d in docs:
+        d = dict(d)
+        due = parse_dt(d["sla_due"])
+        breached = d["status"] != "resolved" and now > due
+        d["sla_breached"] = breached
+        d["sla_remaining_min"] = int((due - now).total_seconds() / 60)
+        out.append(d)
+    return out
+
+
+@api_router.get("/dealer/incidents")
+async def dealer_incidents(dealer=Depends(get_current_dealer)):
+    docs = await db.incidents.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    return with_sla_flags(docs)
+
+
+@api_router.get("/dealer/team")
+async def dealer_team(dealer=Depends(get_current_dealer)):
+    techs = await db.dealers.find({"role": "technician"}, {"_id": 0, "password_hash": 0}).to_list(100)
+    return techs
+
+
+@api_router.patch("/dealer/incidents/{inc_id}")
+async def update_incident(inc_id: str, payload: IncidentUpdate, dealer=Depends(get_current_dealer)):
+    doc = await db.incidents.find_one({"id": inc_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Not found")
+    updates = {}
+    events = []
+    now = now_utc()
+    if payload.assignee_id:
+        tech = await db.dealers.find_one({"dealer_id": payload.assignee_id}, {"_id": 0})
+        updates["assignee_id"] = payload.assignee_id
+        updates["assignee_name"] = tech["name"] if tech else "Unassigned"
+        if doc["status"] in ("submitted", "ai_triaged"):
+            updates["status"] = "assigned"
+        events.append({"status": updates.get("status", doc["status"]), "at": iso(now), "note": f"Assigned to {updates['assignee_name']}"})
+    if payload.priority and payload.priority in PRIORITY_SLA:
+        updates["priority"] = payload.priority
+        updates["sla_hours"] = PRIORITY_SLA[payload.priority]
+        updates["sla_due"] = iso(parse_dt(doc["created_at"]) + timedelta(hours=PRIORITY_SLA[payload.priority]))
+        events.append({"status": doc["status"], "at": iso(now), "note": f"Priority changed to {payload.priority}"})
+    if payload.status:
+        updates["status"] = payload.status
+        if payload.status == "resolved":
+            updates["resolved_at"] = iso(now)
+        events.append({"status": payload.status, "at": iso(now), "note": payload.note or f"Status updated to {payload.status.replace('_', ' ')}"})
+    elif payload.note:
+        events.append({"status": doc["status"], "at": iso(now), "note": payload.note})
+    if events:
+        await db.incidents.update_one({"id": inc_id}, {"$set": updates, "$push": {"timeline": {"$each": events}}})
+    else:
+        await db.incidents.update_one({"id": inc_id}, {"$set": updates})
+    return incident_public(await db.incidents.find_one({"id": inc_id}, {"_id": 0}))
+
+
+@api_router.post("/dealer/incidents/{inc_id}/escalate")
+async def escalate(inc_id: str, dealer=Depends(get_current_dealer)):
+    doc = await db.incidents.find_one({"id": inc_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Not found")
+    level = min(doc.get("escalation_level", 0) + 1, len(ESCALATION_LEVELS))
+    target = ESCALATION_LEVELS[level - 1]
+    await db.incidents.update_one({"id": inc_id}, {"$set": {"escalation_level": level}, "$push": {"timeline": {"status": doc["status"], "at": iso(now_utc()), "note": f"Escalated to Level {level}: {target}"}}})
+    return incident_public(await db.incidents.find_one({"id": inc_id}, {"_id": 0}))
+
+
+# ---------------- KPIs ----------------
+@api_router.get("/dealer/kpis")
+async def kpis(dealer=Depends(get_current_dealer)):
+    docs = with_sla_flags(await db.incidents.find({}, {"_id": 0}).to_list(2000))
+    total = len(docs)
+    open_ = [d for d in docs if d["status"] != "resolved"]
+    resolved = [d for d in docs if d["status"] == "resolved"]
+    breaches = [d for d in docs if d["sla_breached"]]
+    res_times = []
+    for d in resolved:
+        if d.get("resolved_at"):
+            res_times.append((parse_dt(d["resolved_at"]) - parse_dt(d["created_at"])).total_seconds() / 3600)
+    avg_res = round(sum(res_times) / len(res_times), 1) if res_times else 0
+    sla_compliance = round((1 - len(breaches) / total) * 100) if total else 100
+    by_priority = {p: len([d for d in docs if d["priority"] == p]) for p in PRIORITY_SLA}
+    by_category = {}
+    for d in docs:
+        by_category[d["category"]] = by_category.get(d["category"], 0) + 1
+    return {
+        "total": total,
+        "open": len(open_),
+        "resolved": len(resolved),
+        "breaches": len(breaches),
+        "avg_resolution_hours": avg_res,
+        "sla_compliance": sla_compliance,
+        "csat": 92 if sla_compliance >= 85 else 78,
+        "by_priority": by_priority,
+        "by_category": by_category,
+        "escalations_active": len([d for d in docs if d.get("escalation_level", 0) > 0 and d["status"] != "resolved"]),
+    }
+
+
+# ---------------- Amazon Connect (simulated contact center) ----------------
+@api_router.get("/dealer/connect/status")
+async def connect_status(dealer=Depends(get_current_dealer)):
+    configured = bool(os.environ.get("AWS_CONNECT_INSTANCE_ID"))
+    calls = await db.connect_calls.find({}, {"_id": 0}).sort("started_at", -1).to_list(50)
+    return {"mode": "live" if configured else "simulation", "instance_id": os.environ.get("AWS_CONNECT_INSTANCE_ID", ""), "calls": calls}
+
+
+@api_router.post("/dealer/connect/call")
+async def connect_call(body: dict, dealer=Depends(get_current_dealer)):
+    call = {
+        "id": f"CALL-{uuid.uuid4().hex[:6].upper()}",
+        "incident_id": body.get("incident_id"),
+        "customer_name": body.get("customer_name", "Customer"),
+        "direction": body.get("direction", "outbound"),
+        "agent": dealer["name"],
+        "status": "connected",
+        "started_at": iso(now_utc()),
+        "transcript": body.get("transcript", "Agent connected with customer via Amazon Connect softphone."),
+    }
+    await db.connect_calls.insert_one(dict(call))
+    if body.get("incident_id"):
+        await db.incidents.update_one({"id": body["incident_id"]}, {"$push": {"timeline": {"status": "in_progress", "at": iso(now_utc()), "note": f"Amazon Connect call {call['id']} placed by {dealer['name']}"}}})
+    return call
+
+
+# ---------------- Startup seed ----------------
+async def seed():
+    owner_email = "ndvtechsys.solutions@gmail.com"
+    if not await db.dealers.find_one({"email": owner_email}):
+        pw = bcrypt.hashpw("DealerPass123!".encode(), bcrypt.gensalt()).decode()
+        await db.dealers.insert_one({"dealer_id": f"dealer_{uuid.uuid4().hex[:10]}", "email": owner_email, "password_hash": pw, "name": "Service Manager", "role": "manager", "created_at": iso(now_utc())})
+    techs = [("Ravi Kumar", "ravi.tech@autocare.com"), ("Maria Chen", "maria.tech@autocare.com"), ("James Okoro", "james.tech@autocare.com")]
+    for name, email in techs:
+        if not await db.dealers.find_one({"email": email}):
+            pw = bcrypt.hashpw("TechPass123!".encode(), bcrypt.gensalt()).decode()
+            await db.dealers.insert_one({"dealer_id": f"dealer_{uuid.uuid4().hex[:10]}", "email": email, "password_hash": pw, "name": name, "role": "technician", "specialty": "General Service", "created_at": iso(now_utc())})
+
+
+@app.on_event("startup")
+async def startup():
+    try:
+        init_storage()
+        logger.info("Storage initialized")
+    except Exception as e:
+        logger.error(f"Storage init failed: {e}")
+    await seed()
+
+
+@api_router.get("/")
+async def root():
+    return {"message": "AutoCare Pulse API"}
+
+
+app.include_router(api_router)
+app.add_middleware(
+    CORSMiddleware,
+    allow_credentials=True,
+    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+@app.on_event("shutdown")
+async def shutdown_db_client():
+    client.close()

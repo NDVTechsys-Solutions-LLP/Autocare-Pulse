@@ -1,0 +1,182 @@
+{
+  "project_title": "AutoCare Pulse - Intelligent Automotive & Two-Wheeler Incident Management Platform",
+  "archetype": "THE PERFORMANCE PRO x SWISS HIGH-CONTRAST",
+  "theme_strategy": {
+    "default_mode": "dark",
+    "theme_switch_supported": true,
+    "rationale": "High-octane automotive telematics and dealer mission-control command center look best in tactical dark mode (#090D16 base) with vibrant status triggers (Crimson SLA Breach, Electric Amber Warning, Hyper Emerald Resolved) and high-contrast light mode toggle for daylight workshop tablets."
+  },
+  "typography": {
+    "heading_font": "Barlow Condensed, sans-serif",
+    "body_font": "Plus Jakarta Sans, sans-serif",
+    "mono_font": "JetBrains Mono, monospace",
+    "pairing_archetype": "Tactical Condensed Heavy Headings + Clean Geometric Humanist Body",
+    "font_sources": {
+      "google_fonts_url": "https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+    },
+    "hierarchy_rules": {
+      "h1_hero": "text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight uppercase leading-none font-heading",
+      "h2_section": "text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight uppercase font-heading",
+      "h3_card_title": "text-xl sm:text-2xl font-semibold tracking-normal font-heading",
+      "h4_widget_header": "text-lg sm:text-xl font-medium tracking-normal font-heading",
+      "body_text": "text-sm sm:text-base leading-relaxed font-body",
+      "mono_data": "text-xs sm:text-sm font-mono tracking-wider uppercase",
+      "eyebrow_label": "text-xs font-bold uppercase tracking-[0.2em] text-cyan-400 dark:text-cyan-400"
+    }
+  },
+  "colors": {
+    "dark": {
+      "background": "#080B11",
+      "surface_card": "#0F1523",
+      "surface_card_hover": "#161F33",
+      "border": "#1E2A45",
+      "border_accent": "#2B3C60",
+      "primary": "#E63946",
+      "primary_hover": "#F0535E",
+      "primary_foreground": "#FFFFFF",
+      "secondary": "#1E293B",
+      "secondary_foreground": "#E2E8F0",
+      "accent_cyan": "#00F0FF",
+      "accent_amber": "#FFB703",
+      "status_critical": "#FF2A4B",
+      "status_warning": "#FF9F1C",
+      "status_success": "#10B981",
+      "status_info": "#3B82F6",
+      "amazon_connect_panel": "#111827",
+      "text_main": "#F8FAFC",
+      "text_muted": "#94A3B8"
+    },
+    "light": {
+      "background": "#F8FAFC",
+      "surface_card": "#FFFFFF",
+      "surface_card_hover": "#F1F5F9",
+      "border": "#E2E8F0",
+      "border_accent": "#CBD5E1",
+      "primary": "#DC2626",
+      "primary_hover": "#B91C1C",
+      "primary_foreground": "#FFFFFF",
+      "secondary": "#F1F5F9",
+      "secondary_foreground": "#0F172A",
+      "accent_cyan": "#0284C7",
+      "accent_amber": "#D97706",
+      "status_critical": "#DC2626",
+      "status_warning": "#D97706",
+      "status_success": "#059669",
+      "status_info": "#2563EB",
+      "amazon_connect_panel": "#F3F4F6",
+      "text_main": "#0F172A",
+      "text_muted": "#64748B"
+    },
+    "forbidden_colors": ["#7351B7", "#1B93A4"]
+  },
+  "visual_enhancers": {
+    "glassmorphism": "backdrop-blur-xl bg-slate-900/80 border border-slate-700/50 shadow-2xl dark:bg-slate-950/80 dark:border-slate-800/80",
+    "tracing_beam": "border border-cyan-500/30 shadow-[0_0_15px_rgba(0,240,255,0.15)]",
+    "tactical_card": "rounded-xl border border-slate-800 bg-slate-900/90 p-5 shadow-lg hover:border-slate-700 transition-all duration-200",
+    "glow_effects": {
+      "critical": "shadow-[0_0_20px_rgba(255,42,75,0.25)] border-red-500/40",
+      "warning": "shadow-[0_0_20px_rgba(255,159,28,0.2)] border-amber-500/40",
+      "success": "shadow-[0_0_20px_rgba(16,185,129,0.2)] border-emerald-500/40"
+    }
+  },
+  "layout_and_grids": {
+    "app_structure": "Dual Mode Architecture: Navigation header with Role Switcher (Customer Portal vs Dealer Ops Console vs Amazon Connect Panel)",
+    "customer_portal": {
+      "hero": "Asymmetric Bento with Voice Incident Record Widget, Photo Upload & Auto AI Extraction",
+      "incident_history": "Interactive Timeline with Live Status Tracker (Submitted -> AI Filtered -> Dealer Assigned -> In Workshop -> Resolved)"
+    },
+    "dealer_console": {
+      "grid_mode": "High Density Data Grid (col-span-1 for Metrics, col-span-3 for Incident Queue, col-span-2 for Amazon Connect CCP Widget)",
+      "kpi_bar": "4-Column High Contrast Metric Cards (Open Tickets, SLA Breaches, Avg Resolution Time, Dealer CSAT)"
+    }
+  },
+  "key_components": [
+    {
+      "name": "CustomerVoiceRecorder",
+      "description": "Voice-to-text incident creation tool with real-time waveform animation and speech transcript viewer."
+    },
+    {
+      "name": "CustomerPhotoClassifier",
+      "description": "Drag-and-drop vehicle damage photo upload with AI bounding box overlays highlighting damaged bumper/engine/tire area."
+    },
+    {
+      "name": "AIOrchestrationFilter",
+      "description": "Dealer intake engine visualizing auto-categorization (Engine, Electrical, Brake, Body), severity scoring (1-5), and priority matrix."
+    },
+    {
+      "name": "DealerIncidentQueue",
+      "description": "Filterable and sortable incident table with SLA countdown timer, team member assignment dropdown, and priority badges."
+    },
+    {
+      "name": "AmazonConnectCCPPanel",
+      "description": "Integrated Amazon Connect Contact Control Panel simulation with softphone dialer, live voice call transcription, caller vehicle VIN history, and transfer options."
+    },
+    {
+      "name": "KPIMonitoringEscalation",
+      "description": "Resolution time & SLA breach analytics with dynamic escalation path workflow trigger (Dealer Manager -> Regional OEM Lead -> OEM Quality Head)."
+    },
+    {
+      "name": "LiveIncidentTracker",
+      "description": "Customer-facing timeline showing transparent status updates, technician notes, estimated ready time, and dealer service location map."
+    }
+  ],
+  "image_urls": {
+    "vehicle_dashboards": [
+      {
+        "url": "https://images.unsplash.com/photo-1694889648476-3777d917b91c?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA3MDB8MHwxfHNlYXJjaHwzfHxlbGVjdHJpYyUyMGNhciUyMGRhc2hib2FyZCUyMHRlY2hub2xvZ3l8ZW58MHx8fHwxNzg5NTAzMjk4fDA&ixlib=rb-4.1.0&q=85",
+        "description": "Modern electric car dashboard digital cluster screen",
+        "category": "Hero Background / Vehicle Telematics"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1585014165903-6d6c6ebad3e9?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA3MDB8MHwxfHNlYXJjaHwxfHxlbGVjdHJpYyUyMGNhciUyMGRhc2hib2FyZCUyMHRlY2hub2xvZ3l8ZW58MHx8fHwxNzg5NTAzMjk4fDA&ixlib=rb-4.1.0&q=85",
+        "description": "High performance vehicle instrument panel gauge",
+        "category": "Vehicle Diagnostics Widget"
+      }
+    ],
+    "workshop_and_dealers": [
+      {
+        "url": "https://images.unsplash.com/photo-1765447650904-aeb3a8e17f2b?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NzR8MHwxfHNlYXJjaHwxfHxhdXRvbW90aXZlJTIwbW90b3JjeWNsZSUyMG1lY2hhbmljcyUyMGRlYWxlciUyMHdvcmtzaG9wfGVufDB8fHx8MTc4OTUwMzI5MXww&ixlib=rb-4.1.0&q=85",
+        "description": "Automotive technician in dealer workshop facility",
+        "category": "Dealer Workshop / Service Technician"
+      }
+    ],
+    "amazon_connect_support": [
+      {
+        "url": "https://images.unsplash.com/photo-1712159018726-4564d92f3ec2?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA3MDB8MHwxfHNlYXJjaHwzfHxjdXN0b21lciUyMHN1cHBvcnQlMjBhZ2VudCUyMGhlYWRzZXQlMjBjYWxsJTIwY2VudGVyfGVufDB8fHx8MTc4OTUwMzI5OHww&ixlib=rb-4.1.0&q=85",
+        "description": "Amazon Connect dealer call center support specialist",
+        "category": "Contact Center / Agent Panel"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1766066014237-00645c74e9c6?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA3MDB8MHwxfHNlYXJjaHwyfHxjdXN0b21lciUyMHN1cHBvcnQlMjBhZ2VudCUyMGhlYWRzZXQlMjBjYWxsJTIwY2VudGVyfGVufDB8fHx8MTc4OTUwMzI5OHww&ixlib=rb-4.1.0&q=85",
+        "description": "Support representative managing incident escalation call",
+        "category": "Customer Care Specialist"
+      }
+    ]
+  },
+  "instructions_to_main_agent": [
+    "Use Javascript (.js / .jsx) components, NOT Typescript (.tsx).",
+    "Include Google Auth button mock with real profile state, as well as Dealer Email / Password login modal.",
+    "Implement Voice Incident creation: user clicks Record, speaks or triggers audio wave simulation, speech is transcribed to text with AI key details extracted (Model, Problem Type, Urgency).",
+    "Implement Photo Incident creation: upload sample or select pre-loaded car/two-wheeler photo with AI damage detector overlay.",
+    "Build the Dealer Orchestration engine: dynamic filtering by AI priority score (High/Medium/Low), auto-assignment to technicians, and live SLA countdown timer.",
+    "Build the Amazon Connect Contact Control Panel (CCP) component on dealer side: softphone simulator, agent status toggle (Available, On Call, After Work), real-time call transcript, and incident quick-attach.",
+    "Build transparent live tracking view for end user: real-time status stepper, progress percentage, technician notes, and contact button.",
+    "Build KPI & Escalation dashboard: charts for SLA compliance %, Average Time to Resolve, Breached Tickets, and automated Escalation Triggers (Level 1 Dealer -> Level 2 OEM Regional -> Level 3 OEM Quality VP).",
+    "Add 'data-testid' to ALL interactive controls, inputs, buttons, status indicators, and tabs.",
+    "Ensure dark theme looks ultra-sleek with dark navy/obsidian cards (#0F1523) and neon status accents."
+  ],
+  "UNIVERSAL GUIDELINES FOR MAIN AGENT": [
+    "You tend to converge toward generic, 'on distribution' outputs. In frontend design, this creates what users call the 'AI slop' aesthetic. Avoid this: make creative, distinctive frontends that surprise and delight.",
+    "Dark colors look good when used independently without gradients. DO NOT use dark colors as gradients.",
+    "Don't make generic centered layouts, simplistic gradients, and uniform styling.",
+    "Create depth through layered design elements with z-index hierarchy.",
+    "Use glass-morphism effects with backdrop filters (12-24px blur).",
+    "You MUST NOT apply universal transition (e.g., 'transition: all'). Always add transitions for specific interactive elements like button, input excluding transforms.",
+    "You MUST NOT center align the app container (no .App { text-align: center; }).",
+    "Always use modern button styles like pill-shaped, or sharp button with interaction animations & color relevant to the app style.",
+    "NEVER use AI assistant Emoji characters like 🤖🧠💭💡🔮🎯 for icons.",
+    "Every interaction needs micro-animations - hover states, transitions, entrance animations. Static = dead.",
+    "Use 2-3x more spacing than feels comfortable. Cramped designs look cheap.",
+    "All interactive and key informational elements MUST include a 'data-testid' attribute to facilitate robust automated testing."
+  ]
+}
