@@ -200,7 +200,7 @@ function NewIncidentDialog({ open, onOpenChange, onCreated }) {
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Vehicle Model</Label>
-              <Input data-testid="incident-model-input" value={model} onChange={(e) => setModel(e.target.value)} placeholder="e.g. Honda Activa 6G" className="bg-secondary/50" />
+              <Input data-testid="incident-model-input" value={model} onChange={(e) => setModel(e.target.value)} placeholder="e.g. auto-incident Activa 6G" className="bg-secondary/50" />
             </div>
             <div className="space-y-1.5">
               <Label className="font-mono text-xs uppercase tracking-wider text-muted-foreground">VIN (optional)</Label>
