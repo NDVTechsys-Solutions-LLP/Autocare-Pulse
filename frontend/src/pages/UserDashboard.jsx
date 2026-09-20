@@ -15,6 +15,7 @@ import { StatusBadge, PriorityBadge } from "@/components/app/Badges";
 import VoiceRecorder from "@/components/app/VoiceRecorder";
 import IncidentTimeline from "@/components/app/IncidentTimeline";
 import ChatThread from "@/components/app/ChatThread";
+import RsaTracker from "@/components/app/RsaTracker";
 
 export default function UserDashboard() {
   const { user, logout } = useAuth();
@@ -262,6 +263,15 @@ function DetailDialog({ incident, onClose }) {
     catch (e) { toast.error(e.response?.data?.detail || "Request failed"); }
     finally { setCbBusy(false); }
   };
+  const [rsWhen, setRsWhen] = useState("");
+  const [rsBusy, setRsBusy] = useState(false);
+  const reschedule = async () => {
+    if (!rsWhen) { toast.error("Pick a new time"); return; }
+    setRsBusy(true);
+    try { await api.post(`/incidents/${incident.id}/reschedule`, { scheduled_at: new Date(rsWhen).toISOString() }); toast.success("Appointment rescheduled"); setRsWhen(""); }
+    catch (e) { toast.error(e.response?.data?.detail || "Reschedule failed"); }
+    finally { setRsBusy(false); }
+  };
   if (!incident) return null;
   return (
     <Dialog open={!!incident} onOpenChange={(o) => !o && onClose()}>
@@ -297,14 +307,20 @@ function DetailDialog({ incident, onClose }) {
           {incident.resolution_path && (
             <div data-testid="customer-service-update" className="rounded-xl border border-accent/30 bg-accent/5 p-3">
               <p className="font-mono text-[11px] uppercase tracking-wider text-accent">Your Service Update</p>
-              {incident.resolution_path === "rsa" && incident.rsa && (
-                <p className="mt-1 text-sm">Roadside Assistance is on the way — {incident.rsa.unit}, ETA {incident.rsa.eta_min} minutes.</p>
+              {incident.resolution_path === "rsa" && (
+                <div className="mt-2"><RsaTracker incidentId={incident.id} /></div>
               )}
               {incident.resolution_path === "remote" && (
                 <p className="mt-1 text-sm">Our team is resolving your issue remotely. We'll update you here shortly.</p>
               )}
               {incident.resolution_path === "slot" && incident.appointment && (
-                <p className="mt-1 text-sm">Appointment booked for <strong>{new Date(incident.appointment.slot_start).toLocaleString()}</strong> with {incident.appointment.technician_name}. You're #{incident.appointment.position} in the queue ({incident.appointment.lanes_total} service bays running).</p>
+                <div className="mt-1 space-y-2">
+                  <p className="text-sm">Appointment booked for <strong>{new Date(incident.appointment.slot_start).toLocaleString()}</strong> with {incident.appointment.technician_name}.{incident.appointment.position ? ` You're #${incident.appointment.position} in the queue (${incident.appointment.lanes_total} service bays running).` : ""}</p>
+                  <div className="flex gap-2">
+                    <input data-testid="reschedule-time-input" type="datetime-local" value={rsWhen} onChange={(e) => setRsWhen(e.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground" />
+                    <Button data-testid="reschedule-btn" onClick={reschedule} disabled={rsBusy} className="rounded-full bg-accent font-bold text-accent-foreground hover:bg-accent/90">{rsBusy ? "…" : "Reschedule"}</Button>
+                  </div>
+                </div>
               )}
             </div>
           )}

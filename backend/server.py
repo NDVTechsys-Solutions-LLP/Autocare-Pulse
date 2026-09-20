@@ -533,6 +533,52 @@ async def get_incident(inc_id: str, user=Depends(get_current_user)):
     return doc
 
 
+@api_router.get("/incidents/{inc_id}/rsa")
+async def rsa_track(inc_id: str, user=Depends(get_current_user)):
+    inc = await db.incidents.find_one({"id": inc_id, "user_id": user["user_id"]}, {"_id": 0})
+    if not inc or not inc.get("rsa"):
+        raise HTTPException(status_code=404, detail="No roadside unit dispatched")
+    rsa = inc["rsa"]
+    disp = parse_dt(rsa["dispatched_at"])
+    eta = rsa.get("eta_min", 45)
+    elapsed = (now_utc() - disp).total_seconds() / 60
+    progress = max(0.0, min(elapsed / eta, 1.0)) if eta > 0 else 1.0
+    o = rsa.get("origin") or {"lat": 37.77, "lng": -122.42}
+    d = rsa.get("dest") or {"lat": o["lat"] + 0.03, "lng": o["lng"] + 0.03}
+    cur = {"lat": o["lat"] + (d["lat"] - o["lat"]) * progress, "lng": o["lng"] + (d["lng"] - o["lng"]) * progress}
+    return {
+        "unit": rsa.get("unit"), "eta_min": eta, "dispatched_at": rsa["dispatched_at"],
+        "remaining_min": int(max(eta - elapsed, 0)), "progress": round(progress, 3),
+        "status": "arrived" if progress >= 1 else "en_route", "origin": o, "dest": d, "current": cur,
+    }
+
+
+@api_router.post("/incidents/{inc_id}/reschedule")
+async def reschedule(inc_id: str, body: dict, user=Depends(get_current_user)):
+    inc = await db.incidents.find_one({"id": inc_id, "user_id": user["user_id"]}, {"_id": 0})
+    if not inc:
+        raise HTTPException(status_code=404, detail="Not found")
+    if inc.get("resolution_path") != "slot" or not inc.get("appointment"):
+        raise HTTPException(status_code=400, detail="No service slot to reschedule")
+    raw = (body.get("scheduled_at") or "").strip()
+    if not raw:
+        raise HTTPException(status_code=400, detail="Pick a new time")
+    try:
+        newstart = parse_dt(raw)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid time")
+    if newstart <= now_utc():
+        raise HTTPException(status_code=400, detail="Pick a future time")
+    appt = dict(inc["appointment"])
+    dur = appt.get("duration_min", 90)
+    appt["slot_start"] = iso(newstart)
+    appt["slot_end"] = iso(newstart + timedelta(minutes=dur))
+    appt["locked"] = True
+    appt["position"] = None
+    await db.incidents.update_one({"id": inc_id}, {"$set": {"appointment": appt}, "$push": {"timeline": {"status": inc.get("status", "assigned"), "at": iso(now_utc()), "note": f"Customer rescheduled the appointment to {iso(newstart)}"}}})
+    return incident_public(await db.incidents.find_one({"id": inc_id}, {"_id": 0}))
+
+
 # ---------------- Dealer incident ops ----------------
 def with_sla_flags(docs):
     now = now_utc()
@@ -619,6 +665,7 @@ async def recompute_slots(dealership_id):
     techs = await db.dealers.find({"role": "technician", "dealership_id": dealership_id}, {"_id": 0, "password_hash": 0}).to_list(100)
     lanes_n = max(len(techs), 1)
     pending = await db.incidents.find({"dealership_id": dealership_id, "resolution_path": "slot", "status": {"$ne": "resolved"}}, {"_id": 0}).to_list(500)
+    pending = [p for p in pending if not (p.get("appointment") or {}).get("locked")]
     order = {"High": 0, "Medium": 1, "Low": 2}
     pending.sort(key=lambda d: (order.get(d.get("priority"), 1), (d.get("appointment") or {}).get("booked_at") or d.get("created_at")))
     now = now_utc()
@@ -661,7 +708,10 @@ async def dispatch(inc_id: str, body: dict, background_tasks: BackgroundTasks, d
     now = now_utc()
     if mode == "rsa":
         eta = int(body.get("eta_min", 45))
-        rsa = {"dispatched_at": iso(now), "eta_min": eta, "unit": body.get("unit", "RSA Rapid Unit"), "agent": dealer["name"]}
+        dship = await db.dealerships.find_one({"id": inc.get("dealership_id")}, {"_id": 0}) or {}
+        origin = {"lat": dship.get("lat", 37.77), "lng": dship.get("lng", -122.42)}
+        dest = {"lat": origin["lat"] + 0.03, "lng": origin["lng"] - 0.025}
+        rsa = {"dispatched_at": iso(now), "eta_min": eta, "unit": body.get("unit", "RSA Rapid Unit"), "agent": dealer["name"], "origin": origin, "dest": dest}
         await db.incidents.update_one({"id": inc_id}, {"$set": {"resolution_path": "rsa", "rsa": rsa, "status": "in_progress"}, "$push": {"timeline": {"status": "in_progress", "at": iso(now), "note": f"Roadside Assistance dispatched ({rsa['unit']}), ETA {eta} min — by {dealer['name']}"}}})
         background_tasks.add_task(notify_customer_generic, inc, "Roadside Assistance dispatched", f"An RSA unit ({rsa['unit']}) is on the way — ETA {eta} minutes.")
     elif mode == "remote":
