@@ -634,6 +634,7 @@ async def recompute_slots(dealership_id):
         lane_free[li] = end
         tech = techs[li] if li < len(techs) else None
         appt = inc.get("appointment") or {}
+        prev_start = appt.get("slot_start")
         appt.update({
             "slot_start": iso(start), "slot_end": iso(end), "duration_min": dur,
             "technician_id": tech["dealer_id"] if tech else None,
@@ -642,6 +643,10 @@ async def recompute_slots(dealership_id):
         })
         appt.setdefault("booked_at", iso(now_utc()))
         await db.incidents.update_one({"id": inc["id"]}, {"$set": {"appointment": appt}})
+        if prev_start and prev_start != iso(start):
+            await db.incidents.update_one({"id": inc["id"]}, {"$push": {"timeline": {"status": inc.get("status", "assigned"), "at": iso(now_utc()), "note": f"Appointment auto-adjusted to {iso(start)} (queue re-balanced) — position {idx + 1}"}}})
+            shifted = await db.incidents.find_one({"id": inc["id"]}, {"_id": 0})
+            await notify_customer_appointment(shifted)
     return pending
 
 
@@ -650,6 +655,8 @@ async def dispatch(inc_id: str, body: dict, background_tasks: BackgroundTasks, d
     inc = await db.incidents.find_one({"id": inc_id}, {"_id": 0})
     if not inc:
         raise HTTPException(status_code=404, detail="Not found")
+    if inc.get("status") in ("resolved", "closed"):
+        raise HTTPException(status_code=400, detail="Incident is already resolved")
     mode = body.get("mode")
     now = now_utc()
     if mode == "rsa":

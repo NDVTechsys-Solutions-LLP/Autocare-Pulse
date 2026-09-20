@@ -593,3 +593,134 @@ class TestPerBranchScoping:
         for c in cbs:
             # dealership_id may not be included in response; ensure incident_id maps to a silicon incident if present
             assert c.get("dealership_id", "d_silicon") == "d_silicon" or c.get("dealership_id") is None
+
+
+# ---------------- New priority-driven dispatch/resolution workflow ----------------
+
+class TestDispatchWorkflow:
+    def _new_incident(self, cust_headers, description, model, dealership_id="d_metro"):
+        r = requests.post(f"{API}/incidents", json={
+            "description": description, "vehicle_model": model,
+            "source": "manual", "dealership_id": dealership_id,
+        }, headers=cust_headers, timeout=90)
+        assert r.status_code == 200, r.text
+        return r.json()
+
+    def test_rsa_dispatch_on_high_incident(self, cust_headers, dealer_headers):
+        inc = self._new_incident(cust_headers,
+            "Loud grinding from brakes, pedal goes to floor, unsafe to drive.",
+            "Honda City 2021")
+        assert inc["priority"] == "High"
+        r = requests.post(f"{API}/dealer/incidents/{inc['id']}/dispatch",
+                          json={"mode": "rsa", "eta_min": 30, "unit": "Rapid Van 7"},
+                          headers=dealer_headers, timeout=30)
+        assert r.status_code == 200, r.text
+        d = r.json()
+        assert d["resolution_path"] == "rsa"
+        assert d["status"] == "in_progress"
+        assert d["rsa"]["unit"] == "Rapid Van 7"
+        assert d["rsa"]["eta_min"] == 30
+        assert any("Roadside Assistance dispatched" in t.get("note", "") for t in d["timeline"])
+        # customer visibility
+        r2 = requests.get(f"{API}/incidents/{inc['id']}", headers=cust_headers, timeout=30)
+        assert r2.status_code == 200
+        cd = r2.json()
+        assert cd["resolution_path"] == "rsa"
+        assert cd["rsa"]["unit"] == "Rapid Van 7"
+
+    def test_remote_then_slot_on_low_incident(self, cust_headers, dealer_headers):
+        inc = self._new_incident(cust_headers,
+            "Interior cabin light flickering occasionally, no other issues.",
+            "Maruti Swift 2020")
+        assert inc["priority"] in ("Low", "Medium")
+        # remote first
+        r = requests.post(f"{API}/dealer/incidents/{inc['id']}/dispatch",
+                          json={"mode": "remote", "note": "Attempting OTA reset"},
+                          headers=dealer_headers, timeout=30)
+        assert r.status_code == 200, r.text
+        d = r.json()
+        assert d["resolution_path"] == "remote"
+        assert d["status"] == "in_progress"
+        # remote failed -> slot
+        r2 = requests.post(f"{API}/dealer/incidents/{inc['id']}/dispatch",
+                           json={"mode": "slot", "remote_failed": True},
+                           headers=dealer_headers, timeout=30)
+        assert r2.status_code == 200, r2.text
+        d2 = r2.json()
+        assert d2["resolution_path"] == "slot"
+        assert d2["status"] == "assigned"
+        appt = d2["appointment"]
+        for k in ("slot_start", "slot_end", "technician_name", "position", "lane", "lanes_total", "duration_min"):
+            assert k in appt, f"missing {k} in appointment"
+        assert appt["lanes_total"] == 3  # d_metro has 3 techs
+        assert appt["duration_min"] in (60, 120)
+        pytest.slot_inc_id_low = inc["id"]
+        pytest.slot_inc_priority_low = inc["priority"]
+        # customer visibility
+        r3 = requests.get(f"{API}/incidents/{inc['id']}", headers=cust_headers, timeout=30)
+        cd = r3.json()
+        assert cd["resolution_path"] == "slot"
+        assert cd["appointment"]["technician_name"] == appt["technician_name"]
+
+    def test_queue_auto_adjust_priority_ordering(self, cust_headers, dealer_headers):
+        # Book a Medium priority slot after the earlier Low slot; Medium should get position 1
+        med = self._new_incident(cust_headers,
+            "AC not cooling well, blows warm air, needs regas.",
+            "Hyundai Verna 2022")
+        # Force to Medium if AI didn't pick
+        if med["priority"] != "Medium":
+            r = requests.patch(f"{API}/dealer/incidents/{med['id']}",
+                               json={"priority": "Medium"}, headers=dealer_headers, timeout=30)
+            assert r.status_code == 200
+        rb = requests.post(f"{API}/dealer/incidents/{med['id']}/dispatch",
+                           json={"mode": "slot"}, headers=dealer_headers, timeout=30)
+        assert rb.status_code == 200, rb.text
+        appt_med = rb.json()["appointment"]
+
+        # Fetch the earlier Low incident again — its position may have shifted after Medium was booked
+        r_low = requests.get(f"{API}/incidents/{pytest.slot_inc_id_low}", headers=cust_headers, timeout=30)
+        low_appt = r_low.json()["appointment"]
+
+        # Medium (High > Medium > Low) should come before Low in ordering (earlier or same slot but higher-priority lane pos)
+        assert appt_med["position"] <= low_appt["position"], \
+            f"Medium pos {appt_med['position']} should be <= Low pos {low_appt['position']}"
+
+        # Resolve the medium and ensure recompute (low remains valid)
+        rr = requests.patch(f"{API}/dealer/incidents/{med['id']}",
+                            json={"status": "resolved"}, headers=dealer_headers, timeout=30)
+        assert rr.status_code == 200
+        r_low2 = requests.get(f"{API}/incidents/{pytest.slot_inc_id_low}", headers=cust_headers, timeout=30)
+        assert r_low2.status_code == 200
+        assert r_low2.json()["appointment"] is not None
+
+    def test_queue_lanes_distribution_metro(self, cust_headers, dealer_headers):
+        # Create 4 slot bookings at d_metro (3 lanes) and confirm lanes used >= 2 (distribution)
+        ids = []
+        for i in range(4):
+            inc = self._new_incident(cust_headers,
+                f"Small tail light flicker minor issue TEST_{i}",
+                "Ford Figo 2019")
+            if inc["priority"] != "Low":
+                requests.patch(f"{API}/dealer/incidents/{inc['id']}",
+                               json={"priority": "Low"}, headers=dealer_headers, timeout=30)
+            r = requests.post(f"{API}/dealer/incidents/{inc['id']}/dispatch",
+                              json={"mode": "slot"}, headers=dealer_headers, timeout=30)
+            assert r.status_code == 200, r.text
+            ids.append(inc["id"])
+        # fetch each and inspect lanes used
+        lanes_used = set()
+        lanes_total_vals = set()
+        for iid in ids:
+            r = requests.get(f"{API}/incidents/{iid}", headers=cust_headers, timeout=30)
+            appt = r.json()["appointment"]
+            lanes_used.add(appt["lane"])
+            lanes_total_vals.add(appt["lanes_total"])
+        assert lanes_total_vals == {3}, f"lanes_total should always be 3 at metro, got {lanes_total_vals}"
+        assert len(lanes_used) >= 2, f"expected slots spread across multiple lanes, got {lanes_used}"
+
+    def test_dispatch_invalid_mode(self, dealer_headers, cust_headers):
+        inc = self._new_incident(cust_headers,
+            "Wiper motor sluggish sometimes.", "Kia Seltos 2023")
+        r = requests.post(f"{API}/dealer/incidents/{inc['id']}/dispatch",
+                          json={"mode": "bogus"}, headers=dealer_headers, timeout=30)
+        assert r.status_code == 400
