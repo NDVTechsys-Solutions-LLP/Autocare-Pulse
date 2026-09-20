@@ -567,8 +567,10 @@ async def reschedule(inc_id: str, body: dict, user=Depends(get_current_user)):
         newstart = parse_dt(raw)
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid time")
-    if newstart <= now_utc():
+    if (newstart <= now_utc()):
         raise HTTPException(status_code=400, detail="Pick a future time")
+    if newstart.hour < BUSINESS_START_HOUR or newstart.hour >= BUSINESS_END_HOUR:
+        raise HTTPException(status_code=400, detail="Choose a time within service hours (09:00–18:00 UTC)")
     appt = dict(inc["appointment"])
     dur = appt.get("duration_min", 90)
     appt["slot_start"] = iso(newstart)

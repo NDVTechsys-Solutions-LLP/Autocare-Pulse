@@ -151,7 +151,7 @@ class TestDealerOps:
         assert any(t["email"] == "ravi.tech@autocare.com" for t in techs)
         for t in techs:
             assert "password_hash" not in t
-        pytest.tech_id = [t for t in techs if t["email"] == "ravi.tech@autocare.com"][0]["dealer_id"]
+        pytest.tech_id = next(t for t in techs if t["email"] == "ravi.tech@autocare.com")["dealer_id"]
 
     def test_assign_status_priority(self, dealer_headers):
         inc = pytest.brake_id
@@ -299,7 +299,7 @@ class TestCallback:
         assert r.status_code == 200
         assert r.json()["status"] == "placed"
         r3 = requests.get(f"{API}/dealer/callbacks", headers=dealer_headers, timeout=30)
-        found = [c for c in r3.json() if c["id"] == pytest.cb_id][0]
+        found = next(c for c in r3.json() if c["id"] == pytest.cb_id)
         assert found["status"] == "placed"
         # timeline updated
         r2 = requests.get(f"{API}/incidents/{pytest.brake_id}", headers=cust_headers, timeout=30)
@@ -341,8 +341,8 @@ class TestRecordings:
 
 
 # ---------------- New: dealer chat email fire-and-forget, callback scheduling, cron, recording sim 404 ----------------
-from datetime import datetime, timedelta, timezone
 import os as _os
+from datetime import datetime, timedelta, timezone
 
 CRON_SECRET = _os.environ.get("WEBHOOK_CRON_SECRET", "wcs_autocare_9f3a1c7b52e84d6f0a1b2c3d4e5f6071")
 
@@ -413,7 +413,6 @@ class TestCronCallbacks:
         # Seed a due (past) scheduled callback via API by first creating a future one, then forcing a past scheduled_at via a new POST
         # Simplest: create with future then wait not needed; direct approach: create a fresh scheduled with a slightly-in-the-future time and update via cron logic requires past. Emit one with a past time via mongo isn't accessible here.
         # Instead: create a future-scheduled and then re-post via API with same phone but past time — new record.
-        past = (datetime.now(timezone.utc) - timedelta(minutes=5)).isoformat()
         # request_callback treats past as immediate 'pending' (no live), so we can't get a 'scheduled' past via public API.
         # So we exercise cron endpoint auth path + drain semantics: call cron, ensure 200 and any previously-scheduled with a due time flips.
         r = requests.post(f"{API}/cron/callbacks", headers={"Authorization": f"Bearer {CRON_SECRET}"}, timeout=30)
@@ -724,3 +723,137 @@ class TestDispatchWorkflow:
         r = requests.post(f"{API}/dealer/incidents/{inc['id']}/dispatch",
                           json={"mode": "bogus"}, headers=dealer_headers, timeout=30)
         assert r.status_code == 400
+
+
+# ---------------- New: RSA live tracking + Customer reschedule ----------------
+
+
+class TestRsaTracking:
+    def _mk_high(self, cust_headers):
+        r = requests.post(f"{API}/incidents", json={
+            "description": "Loud grinding from brakes, pedal to floor, unsafe.",
+            "vehicle_model": "Honda City 2021", "source": "manual", "dealership_id": "d_metro",
+        }, headers=cust_headers, timeout=90)
+        assert r.status_code == 200, r.text
+        return r.json()
+
+    def test_rsa_track_404_when_no_dispatch(self, cust_headers):
+        inc = self._mk_high(cust_headers)
+        r = requests.get(f"{API}/incidents/{inc['id']}/rsa", headers=cust_headers, timeout=30)
+        assert r.status_code == 404
+
+    def test_rsa_track_progress_and_interpolation(self, cust_headers, dealer_headers):
+        inc = self._mk_high(cust_headers)
+        # dealer dispatches RSA with eta=10
+        r = requests.post(f"{API}/dealer/incidents/{inc['id']}/dispatch",
+                          json={"mode": "rsa", "eta_min": 10, "unit": "Rapid Van 9"},
+                          headers=dealer_headers, timeout=30)
+        assert r.status_code == 200, r.text
+        # first read
+        r1 = requests.get(f"{API}/incidents/{inc['id']}/rsa", headers=cust_headers, timeout=30)
+        assert r1.status_code == 200, r1.text
+        d1 = r1.json()
+        for k in ("unit", "eta_min", "remaining_min", "progress", "status", "origin", "dest", "current"):
+            assert k in d1, f"missing {k}"
+        assert d1["unit"] == "Rapid Van 9"
+        assert d1["eta_min"] == 10
+        assert 0.0 <= d1["progress"] < 1.0
+        assert d1["status"] == "en_route"
+        assert d1["remaining_min"] <= 10
+        # origin approx = dealership coord (not the fallback 37.77)
+        assert isinstance(d1["origin"]["lat"], (int, float))
+        # wait a few seconds and verify progress advances, current interpolates
+        time.sleep(6)
+        r2 = requests.get(f"{API}/incidents/{inc['id']}/rsa", headers=cust_headers, timeout=30)
+        d2 = r2.json()
+        assert d2["progress"] > d1["progress"], f"progress did not advance: {d1['progress']} -> {d2['progress']}"
+        assert d2["remaining_min"] <= d1["remaining_min"]
+        # current moved toward dest (linear interp)
+        dx1 = abs(d1["current"]["lat"] - d1["origin"]["lat"])
+        dx2 = abs(d2["current"]["lat"] - d2["origin"]["lat"])
+        assert dx2 >= dx1
+
+
+class TestReschedule:
+    def _low_slot(self, cust_headers, dealer_headers):
+        r = requests.post(f"{API}/incidents", json={
+            "description": "Cabin lamp flickers occasionally, TEST_reschedule.",
+            "vehicle_model": "Maruti Swift 2020", "source": "manual", "dealership_id": "d_metro",
+        }, headers=cust_headers, timeout=90)
+        assert r.status_code == 200
+        inc = r.json()
+        if inc["priority"] != "Low":
+            requests.patch(f"{API}/dealer/incidents/{inc['id']}", json={"priority": "Low"},
+                           headers=dealer_headers, timeout=30)
+        rd = requests.post(f"{API}/dealer/incidents/{inc['id']}/dispatch",
+                           json={"mode": "slot"}, headers=dealer_headers, timeout=30)
+        assert rd.status_code == 200, rd.text
+        return rd.json()
+
+    def test_reschedule_success_locks_slot(self, cust_headers, dealer_headers):
+        inc = self._low_slot(cust_headers, dealer_headers)
+        newstart = datetime.now(timezone.utc) + timedelta(days=2, hours=1)
+        # zero out seconds
+        newstart = newstart.replace(second=0, microsecond=0)
+        r = requests.post(f"{API}/incidents/{inc['id']}/reschedule",
+                          json={"scheduled_at": newstart.isoformat().replace("+00:00", "Z")},
+                          headers=cust_headers, timeout=30)
+        assert r.status_code == 200, r.text
+        d = r.json()
+        appt = d["appointment"]
+        assert appt["locked"] is True
+        assert appt["position"] is None
+        # slot_start reflects requested time
+        assert appt["slot_start"].startswith(newstart.strftime("%Y-%m-%dT%H:%M"))
+        # timeline note
+        assert any("Customer rescheduled" in t.get("note", "") for t in d["timeline"])
+        # save for lock test
+        pytest.locked_inc_id = inc["id"]
+        pytest.locked_slot_start = appt["slot_start"]
+
+    def test_reschedule_rejects_past(self, cust_headers, dealer_headers):
+        inc = self._low_slot(cust_headers, dealer_headers)
+        past = (datetime.now(timezone.utc) - timedelta(days=1)).replace(second=0, microsecond=0)
+        r = requests.post(f"{API}/incidents/{inc['id']}/reschedule",
+                          json={"scheduled_at": past.isoformat().replace("+00:00", "Z")},
+                          headers=cust_headers, timeout=30)
+        assert r.status_code == 400
+
+    def test_reschedule_rejects_empty(self, cust_headers, dealer_headers):
+        inc = self._low_slot(cust_headers, dealer_headers)
+        r = requests.post(f"{API}/incidents/{inc['id']}/reschedule",
+                          json={"scheduled_at": ""}, headers=cust_headers, timeout=30)
+        assert r.status_code == 400
+
+    def test_reschedule_rejects_no_slot(self, cust_headers):
+        # brand new incident (no dispatch) has no appointment
+        r = requests.post(f"{API}/incidents", json={
+            "description": "Radio buzz sometimes, TEST_noslot.", "vehicle_model": "Kia Seltos",
+            "source": "manual", "dealership_id": "d_metro",
+        }, headers=cust_headers, timeout=90)
+        inc = r.json()
+        future = (datetime.now(timezone.utc) + timedelta(days=2)).replace(second=0, microsecond=0)
+        r2 = requests.post(f"{API}/incidents/{inc['id']}/reschedule",
+                           json={"scheduled_at": future.isoformat().replace("+00:00", "Z")},
+                           headers=cust_headers, timeout=30)
+        assert r2.status_code == 400
+
+    def test_recompute_respects_lock(self, cust_headers, dealer_headers):
+        """After lock, booking another slot at same dealership does NOT change locked incident's slot_start."""
+        assert getattr(pytest, "locked_inc_id", None), "prior test missing"
+        locked_before = pytest.locked_slot_start
+        # trigger a new slot booking (any priority) -> recompute_slots runs
+        r = requests.post(f"{API}/incidents", json={
+            "description": "AC weak, low cool TEST_lockcheck.", "vehicle_model": "Hyundai i20",
+            "source": "manual", "dealership_id": "d_metro",
+        }, headers=cust_headers, timeout=90)
+        new_inc = r.json()
+        rd = requests.post(f"{API}/dealer/incidents/{new_inc['id']}/dispatch",
+                           json={"mode": "slot"}, headers=dealer_headers, timeout=30)
+        assert rd.status_code == 200, rd.text
+        # locked slot unchanged
+        r2 = requests.get(f"{API}/incidents/{pytest.locked_inc_id}", headers=cust_headers, timeout=30)
+        assert r2.status_code == 200
+        appt = r2.json()["appointment"]
+        assert appt["slot_start"] == locked_before, f"locked slot moved: {locked_before} -> {appt['slot_start']}"
+        assert appt["locked"] is True

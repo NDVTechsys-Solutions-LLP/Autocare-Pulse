@@ -317,7 +317,7 @@ function DetailDialog({ incident, onClose }) {
                 <div className="mt-1 space-y-2">
                   <p className="text-sm">Appointment booked for <strong>{new Date(incident.appointment.slot_start).toLocaleString()}</strong> with {incident.appointment.technician_name}.{incident.appointment.position ? ` You're #${incident.appointment.position} in the queue (${incident.appointment.lanes_total} service bays running).` : ""}</p>
                   <div className="flex gap-2">
-                    <input data-testid="reschedule-time-input" type="datetime-local" value={rsWhen} onChange={(e) => setRsWhen(e.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground" />
+                    <input data-testid="reschedule-time-input" type="datetime-local" min={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)} value={rsWhen} onChange={(e) => setRsWhen(e.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground" />
                     <Button data-testid="reschedule-btn" onClick={reschedule} disabled={rsBusy} className="rounded-full bg-accent font-bold text-accent-foreground hover:bg-accent/90">{rsBusy ? "…" : "Reschedule"}</Button>
                   </div>
                 </div>

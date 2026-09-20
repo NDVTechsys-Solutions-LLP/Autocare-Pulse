@@ -7,12 +7,18 @@ export default function RsaTracker({ incidentId }) {
 
   useEffect(() => {
     let alive = true;
+    let timer = null;
     const load = async () => {
-      try { const r = await api.get(`/incidents/${incidentId}/rsa`); if (alive) setD(r.data); } catch { /* ignore */ }
+      try {
+        const r = await api.get(`/incidents/${incidentId}/rsa`);
+        if (!alive) return;
+        setD(r.data);
+        if (r.data.status === "arrived" && timer) { clearInterval(timer); timer = null; }
+      } catch { /* ignore */ }
     };
     load();
-    const t = setInterval(load, 5000);
-    return () => { alive = false; clearInterval(t); };
+    timer = setInterval(load, 5000);
+    return () => { alive = false; if (timer) clearInterval(timer); };
   }, [incidentId]);
 
   if (!d) return null;
