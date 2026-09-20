@@ -293,6 +293,22 @@ function DetailDialog({ incident, onClose }) {
             </div>
           )}
           {incident.assignee_name && <p className="font-mono text-sm text-accent">Technician: {incident.assignee_name}</p>}
+
+          {incident.resolution_path && (
+            <div data-testid="customer-service-update" className="rounded-xl border border-accent/30 bg-accent/5 p-3">
+              <p className="font-mono text-[11px] uppercase tracking-wider text-accent">Your Service Update</p>
+              {incident.resolution_path === "rsa" && incident.rsa && (
+                <p className="mt-1 text-sm">Roadside Assistance is on the way — {incident.rsa.unit}, ETA {incident.rsa.eta_min} minutes.</p>
+              )}
+              {incident.resolution_path === "remote" && (
+                <p className="mt-1 text-sm">Our team is resolving your issue remotely. We'll update you here shortly.</p>
+              )}
+              {incident.resolution_path === "slot" && incident.appointment && (
+                <p className="mt-1 text-sm">Appointment booked for <strong>{new Date(incident.appointment.slot_start).toLocaleString()}</strong> with {incident.appointment.technician_name}. You're #{incident.appointment.position} in the queue ({incident.appointment.lanes_total} service bays running).</p>
+              )}
+            </div>
+          )}
+
           <div className="border-t border-border pt-4">
             <p className="mb-3 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Live Progress</p>
             <IncidentTimeline incident={incident} />

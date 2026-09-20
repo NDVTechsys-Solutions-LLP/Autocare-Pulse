@@ -47,6 +47,9 @@ storage_key = None
 MIME_TYPES = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png", "webp": "image/webp"}
 PRIORITY_SLA = {"High": 4, "Medium": 24, "Low": 72}
 ESCALATION_LEVELS = ["Dealer Service Manager", "OEM Regional Lead", "OEM Quality Head"]
+SERVICE_DURATION_MIN = {"High": 90, "Medium": 120, "Low": 60}
+BUSINESS_START_HOUR = 9
+BUSINESS_END_HOUR = 18
 
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
@@ -218,6 +221,36 @@ async def notify_customer_chat(inc, agent_name, text):
         await send_email(to=inc["customer_email"], subject=subject, html=html)
     except Exception as e:
         logger.error(f"chat email notify failed: {e}")
+
+
+async def notify_customer_generic(inc, headline, message):
+    try:
+        if not inc.get("customer_email"):
+            return
+        link = (os.environ.get("APP_BASE_URL") or "").rstrip("/") + "/dashboard"
+        subject = f"{headline} — {inc['id']}"
+        html = (
+            f'<table role="presentation" width="100%"><tr><td style="padding:24px;font-family:Arial,sans-serif;color:#111">'
+            f'<p>Hi {escape(inc.get("customer_name") or "there")},</p>'
+            f'<p><strong>{escape(headline)}</strong></p>'
+            f'<p>{escape(message)}</p>'
+            f'<p>Incident <strong>{escape(inc["id"])}</strong> · {escape(inc.get("vehicle_model", ""))} · {escape(inc.get("dealership_name", ""))}</p>'
+            f'<p><a href="{escape(link)}" style="display:inline-block;background:#E63946;color:#fff;padding:10px 18px;border-radius:999px;text-decoration:none">Track your incident</a></p>'
+            f'<p style="font-size:12px;color:#888">Sent by {escape(EMAIL_FROM_NAME)}.</p>'
+            f'</td></tr></table>'
+        )
+        await send_email(to=inc["customer_email"], subject=subject, html=html)
+    except Exception as e:
+        logger.error(f"generic notify failed: {e}")
+
+
+async def notify_customer_appointment(inc):
+    appt = inc.get("appointment") or {}
+    msg = (
+        f"Your service appointment is booked for {appt.get('slot_start', '')} with {appt.get('technician_name', 'our team')}. "
+        f"You are number {appt.get('position', '?')} in the queue ({appt.get('lanes_total', '?')} service bays running)."
+    )
+    await notify_customer_generic(inc, "Service appointment booked", msg)
 
 
 # ---------------- Auth helpers ----------------
@@ -557,6 +590,8 @@ async def update_incident(inc_id: str, payload: IncidentUpdate, dealer=Depends(g
         await db.incidents.update_one({"id": inc_id}, {"$set": updates, "$push": {"timeline": {"$each": events}}})
     else:
         await db.incidents.update_one({"id": inc_id}, {"$set": updates})
+    if payload.status == "resolved" and doc.get("resolution_path") == "slot":
+        await recompute_slots(doc.get("dealership_id"))
     return incident_public(await db.incidents.find_one({"id": inc_id}, {"_id": 0}))
 
 
@@ -568,6 +603,76 @@ async def escalate(inc_id: str, dealer=Depends(get_current_dealer)):
     level = min(doc.get("escalation_level", 0) + 1, len(ESCALATION_LEVELS))
     target = ESCALATION_LEVELS[level - 1]
     await db.incidents.update_one({"id": inc_id}, {"$set": {"escalation_level": level}, "$push": {"timeline": {"status": doc["status"], "at": iso(now_utc()), "note": f"Escalated to Level {level}: {target}"}}})
+    return incident_public(await db.incidents.find_one({"id": inc_id}, {"_id": 0}))
+
+
+def _align_business(dt):
+    if dt.hour < BUSINESS_START_HOUR:
+        return dt.replace(hour=BUSINESS_START_HOUR, minute=0, second=0, microsecond=0)
+    if dt.hour >= BUSINESS_END_HOUR:
+        return (dt + timedelta(days=1)).replace(hour=BUSINESS_START_HOUR, minute=0, second=0, microsecond=0)
+    return dt.replace(second=0, microsecond=0)
+
+
+async def recompute_slots(dealership_id):
+    """Auto-adjust the service queue across available technicians (parallel bays)."""
+    techs = await db.dealers.find({"role": "technician", "dealership_id": dealership_id}, {"_id": 0, "password_hash": 0}).to_list(100)
+    lanes_n = max(len(techs), 1)
+    pending = await db.incidents.find({"dealership_id": dealership_id, "resolution_path": "slot", "status": {"$ne": "resolved"}}, {"_id": 0}).to_list(500)
+    order = {"High": 0, "Medium": 1, "Low": 2}
+    pending.sort(key=lambda d: (order.get(d.get("priority"), 1), (d.get("appointment") or {}).get("booked_at") or d.get("created_at")))
+    now = now_utc()
+    lane_free = [_align_business(now) for _ in range(lanes_n)]
+    for idx, inc in enumerate(pending):
+        dur = SERVICE_DURATION_MIN.get(inc.get("priority"), 90)
+        li = min(range(lanes_n), key=lambda i: lane_free[i])
+        start = _align_business(lane_free[li])
+        end = start + timedelta(minutes=dur)
+        if end.hour > BUSINESS_END_HOUR or (end.hour == BUSINESS_END_HOUR and end.minute > 0):
+            start = (start + timedelta(days=1)).replace(hour=BUSINESS_START_HOUR, minute=0, second=0, microsecond=0)
+            end = start + timedelta(minutes=dur)
+        lane_free[li] = end
+        tech = techs[li] if li < len(techs) else None
+        appt = inc.get("appointment") or {}
+        appt.update({
+            "slot_start": iso(start), "slot_end": iso(end), "duration_min": dur,
+            "technician_id": tech["dealer_id"] if tech else None,
+            "technician_name": tech["name"] if tech else "Service Bay",
+            "position": idx + 1, "lane": li + 1, "lanes_total": lanes_n,
+        })
+        appt.setdefault("booked_at", iso(now_utc()))
+        await db.incidents.update_one({"id": inc["id"]}, {"$set": {"appointment": appt}})
+    return pending
+
+
+@api_router.post("/dealer/incidents/{inc_id}/dispatch")
+async def dispatch(inc_id: str, body: dict, background_tasks: BackgroundTasks, dealer=Depends(get_current_dealer)):
+    inc = await db.incidents.find_one({"id": inc_id}, {"_id": 0})
+    if not inc:
+        raise HTTPException(status_code=404, detail="Not found")
+    mode = body.get("mode")
+    now = now_utc()
+    if mode == "rsa":
+        eta = int(body.get("eta_min", 45))
+        rsa = {"dispatched_at": iso(now), "eta_min": eta, "unit": body.get("unit", "RSA Rapid Unit"), "agent": dealer["name"]}
+        await db.incidents.update_one({"id": inc_id}, {"$set": {"resolution_path": "rsa", "rsa": rsa, "status": "in_progress"}, "$push": {"timeline": {"status": "in_progress", "at": iso(now), "note": f"Roadside Assistance dispatched ({rsa['unit']}), ETA {eta} min — by {dealer['name']}"}}})
+        background_tasks.add_task(notify_customer_generic, inc, "Roadside Assistance dispatched", f"An RSA unit ({rsa['unit']}) is on the way — ETA {eta} minutes.")
+    elif mode == "remote":
+        note = body.get("note", "Attempting remote diagnosis and guided fix.")
+        remote = {"started_at": iso(now), "note": note, "by": dealer["name"]}
+        await db.incidents.update_one({"id": inc_id}, {"$set": {"resolution_path": "remote", "remote": remote, "status": "in_progress"}, "$push": {"timeline": {"status": "in_progress", "at": iso(now), "note": f"Remote resolution started: {note}"}}})
+        background_tasks.add_task(notify_customer_generic, inc, "We're helping you remotely", note)
+    elif mode == "slot":
+        await db.incidents.update_one({"id": inc_id}, {"$set": {"resolution_path": "slot", "status": "assigned"}})
+        if body.get("remote_failed"):
+            await db.incidents.update_one({"id": inc_id}, {"$push": {"timeline": {"status": "assigned", "at": iso(now), "note": "Remote resolution unsuccessful — booking a service slot."}}})
+        await recompute_slots(inc.get("dealership_id"))
+        updated = await db.incidents.find_one({"id": inc_id}, {"_id": 0})
+        appt = updated.get("appointment") or {}
+        await db.incidents.update_one({"id": inc_id}, {"$push": {"timeline": {"status": "assigned", "at": iso(now), "note": f"Service slot booked: {appt.get('slot_start', '')} with {appt.get('technician_name', '')} (queue position {appt.get('position', '?')} of {appt.get('lanes_total', '?')} bays)"}}})
+        background_tasks.add_task(notify_customer_appointment, updated)
+    else:
+        raise HTTPException(status_code=400, detail="Invalid mode (use rsa | remote | slot)")
     return incident_public(await db.incidents.find_one({"id": inc_id}, {"_id": 0}))
 
 

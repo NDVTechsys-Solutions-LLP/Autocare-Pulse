@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Activity, LogOut, ArrowUpRight, Clock, ChevronRight, TrendingUp, MessageSquare } from "lucide-react";
+import { Activity, LogOut, ArrowUpRight, Clock, ChevronRight, TrendingUp, MessageSquare, Truck, MonitorSmartphone, CalendarClock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -65,6 +65,10 @@ export default function DealerConsole() {
   const startChat = async (id, name) => {
     try { const r = await api.post(`/dealer/connect/chat`, { incident_id: id, display_name: name || "Customer" }, dealerCfg()); toast.success(`Chat/SMS opened · ${r.data.contact_id}`); load(); }
     catch (e) { toast.error(e.response?.data?.detail || "Chat failed"); }
+  };
+  const dispatchAction = async (id, body) => {
+    try { await api.post(`/dealer/incidents/${id}/dispatch`, body, dealerCfg()); toast.success(body.mode === "rsa" ? "Roadside Assistance dispatched" : body.mode === "remote" ? "Remote resolution started" : "Service slot booked & customer notified"); load(); }
+    catch (e) { toast.error(e.response?.data?.detail || "Action failed"); }
   };
 
   return (
@@ -154,7 +158,7 @@ export default function DealerConsole() {
         </Tabs>
       </main>
 
-      <DealerDetail incident={selected} team={team} onClose={() => setSelected(null)} onUpdate={update} onEscalate={escalate} onChat={startChat} />
+      <DealerDetail incident={selected} team={team} onClose={() => setSelected(null)} onUpdate={update} onEscalate={escalate} onChat={startChat} onDispatch={dispatchAction} />
     </div>
   );
 }
@@ -221,7 +225,7 @@ function KpiCharts({ kpis, incidents }) {
   );
 }
 
-function DealerDetail({ incident, team, onClose, onUpdate, onEscalate, onChat }) {
+function DealerDetail({ incident, team, onClose, onUpdate, onEscalate, onChat, onDispatch }) {
   if (!incident) return null;
   return (
     <Dialog open={!!incident} onOpenChange={(o) => !o && onClose()}>
@@ -249,6 +253,25 @@ function DealerDetail({ incident, team, onClose, onUpdate, onEscalate, onChat })
               <p className="mt-1 text-sm">{incident.recommended_action}</p>
             </div>
           )}
+
+          <div className="rounded-xl border border-border bg-secondary/20 p-3">
+            <p className="mb-2 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Resolution Path · {incident.priority} priority</p>
+            {incident.appointment && (
+              <div className="mb-2 rounded-lg border border-accent/30 bg-accent/5 p-2.5 text-sm">
+                <p className="flex items-center gap-1.5 font-semibold"><CalendarClock className="h-4 w-4 text-accent" />Service slot booked</p>
+                <p className="text-muted-foreground">{new Date(incident.appointment.slot_start).toLocaleString()} · {incident.appointment.technician_name} · queue #{incident.appointment.position} of {incident.appointment.lanes_total} bays</p>
+              </div>
+            )}
+            {incident.rsa && <p className="mb-2 text-sm text-emerald-400">RSA dispatched · {incident.rsa.unit} · ETA {incident.rsa.eta_min}m</p>}
+            {incident.priority === "High" ? (
+              <Button data-testid="dispatch-rsa-btn" onClick={() => onDispatch(incident.id, { mode: "rsa", eta_min: 45 })} className="w-full rounded-full bg-red-600 font-bold hover:bg-red-500"><Truck className="mr-1.5 h-4 w-4" />Dispatch Roadside Assistance</Button>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                <Button data-testid="try-remote-btn" onClick={() => onDispatch(incident.id, { mode: "remote" })} variant="outline" className="rounded-full border-border"><MonitorSmartphone className="mr-1.5 h-4 w-4" />Try Remote Fix</Button>
+                <Button data-testid="book-slot-btn" onClick={() => onDispatch(incident.id, { mode: "slot", remote_failed: incident.resolution_path === "remote" })} className="rounded-full bg-accent font-bold text-accent-foreground hover:bg-accent/90"><CalendarClock className="mr-1.5 h-4 w-4" />{incident.resolution_path === "remote" ? "Remote Failed → Slot" : "Book Service Slot"}</Button>
+              </div>
+            )}
+          </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
