@@ -78,24 +78,45 @@ def init_storage(force: bool = False):
     global storage_key
     if storage_key and not force:
         return storage_key
-    resp = requests.post(f"{STORAGE_URL}/init", json={"emergent_key": EMERGENT_LLM_KEY}, timeout=30)
-    resp.raise_for_status()
-    storage_key = resp.json()["storage_key"]
-    return storage_key
+    if not EMERGENT_LLM_KEY:
+        logger.info("No EMERGENT_LLM_KEY configured; cloud storage initialization skipped.")
+        return None
+    try:
+        resp = requests.post(f"{STORAGE_URL}/init", json={"emergent_key": EMERGENT_LLM_KEY}, timeout=30)
+        resp.raise_for_status()
+        storage_key = resp.json().get("storage_key")
+        return storage_key
+    except Exception as e:
+        logger.warning(f"Cloud storage init skipped: {e}")
+        return None
 
 
 def put_object(path: str, data: bytes, content_type: str) -> dict:
     key = init_storage()
+    if not key:
+        local_dir = ROOT_DIR / "uploads"
+        local_dir.mkdir(parents=True, exist_ok=True)
+        safe_name = path.replace("/", "_")
+        local_file = local_dir / safe_name
+        local_file.write_bytes(data)
+        return {"path": path, "size": len(data)}
     resp = requests.put(f"{STORAGE_URL}/objects/{path}", headers={"X-Storage-Key": key, "Content-Type": content_type}, data=data, timeout=120)
     if resp.status_code == 404:
         key = init_storage(force=True)
-        resp = requests.put(f"{STORAGE_URL}/objects/{path}", headers={"X-Storage-Key": key, "Content-Type": content_type}, data=data, timeout=120)
+        if key:
+            resp = requests.put(f"{STORAGE_URL}/objects/{path}", headers={"X-Storage-Key": key, "Content-Type": content_type}, data=data, timeout=120)
     resp.raise_for_status()
     return resp.json()
 
 
 def get_object(path: str):
     key = init_storage()
+    if not key:
+        safe_name = path.replace("/", "_")
+        local_file = (ROOT_DIR / "uploads") / safe_name
+        if local_file.exists():
+            return local_file.read_bytes(), MIME_TYPES.get(path.rsplit(".", 1)[-1].lower(), "application/octet-stream")
+        return b"", "application/octet-stream"
     resp = requests.get(f"{STORAGE_URL}/objects/{path}", headers={"X-Storage-Key": key}, timeout=60)
     resp.raise_for_status()
     return resp.content, resp.headers.get("Content-Type", "application/octet-stream")
