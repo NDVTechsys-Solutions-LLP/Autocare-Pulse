@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
+import io
 import re
 import json
 import logging
@@ -284,7 +285,7 @@ async def get_current_user(request: Request, authorization: Optional[str] = Head
     session = await db.user_sessions.find_one({"session_token": token}, {"_id": 0})
     if not session:
         raise HTTPException(status_code=401, detail="Invalid session")
-    if parse_dt(session["expires_at"]) < now_utc():
+    if session.get("expires_at") and parse_dt(session["expires_at"]) < now_utc():
         raise HTTPException(status_code=401, detail="Session expired")
     user = await db.users.find_one({"user_id": session["user_id"]}, {"_id": 0})
     if not user:
@@ -439,15 +440,16 @@ async def serve_file(path: str):
 @api_router.post("/voice/transcribe")
 async def transcribe(file: UploadFile = File(...), user=Depends(get_current_user)):
     data = await file.read()
-    suffix = "." + (file.filename.rsplit(".", 1)[-1] if "." in file.filename else "webm")
-    with tempfile.NamedTemporaryFile(delete=True, suffix=suffix) as tmp:
-        tmp.write(data)
-        tmp.flush()
-        tmp.seek(0)
-        stt = OpenAISpeechToText(api_key=EMERGENT_LLM_KEY)
-        with open(tmp.name, "rb") as af:
-            resp = await stt.transcribe(file=af, model="whisper-1", response_format="json")
-    return {"text": getattr(resp, "text", "")}
+    if not data:
+        return {"text": ""}
+    filename = file.filename or "voice.webm"
+    buf = io.BytesIO(data)
+    buf.name = filename
+    stt = OpenAISpeechToText(api_key=EMERGENT_LLM_KEY)
+    resp = await stt.transcribe(file=buf, model="whisper-1", response_format="json")
+    text = getattr(resp, "text", "") or ""
+    return {"text": text}
+
 
 
 import math
@@ -1306,6 +1308,12 @@ async def startup():
 @api_router.get("/")
 async def root():
     return {"message": "AutoCare Pulse API"}
+
+
+@api_router.get("/health")
+async def health():
+    enable_hc = os.environ.get("ENABLE_HEALTH_CHECK", "false").lower() in ("true", "1")
+    return {"status": "ok", "health_check_enabled": enable_hc, "time": iso(now_utc())}
 
 
 app.include_router(api_router)

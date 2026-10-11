@@ -12,58 +12,98 @@ export default function VoiceRecorder({ onTranscript }) {
   const start = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mr = new MediaRecorder(stream);
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+        ? "audio/webm;codecs=opus"
+        : MediaRecorder.isTypeSupported("audio/webm")
+        ? "audio/webm"
+        : MediaRecorder.isTypeSupported("audio/mp4")
+        ? "audio/mp4"
+        : "";
+      const options = mimeType ? { mimeType } : undefined;
+      const mr = new MediaRecorder(stream, options);
       chunksRef.current = [];
-      mr.ondataavailable = (e) => e.data.size && chunksRef.current.push(e.data);
+      mr.ondataavailable = (e) => e.data && e.data.size > 0 && chunksRef.current.push(e.data);
       mr.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop());
         setProcessing(true);
         try {
-          const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+          const actualMime = mr.mimeType || "audio/webm";
+          const ext = actualMime.includes("mp4") ? "mp4" : "webm";
+          const blob = new Blob(chunksRef.current, { type: actualMime });
           const fd = new FormData();
-          fd.append("file", blob, "voice.webm");
+          fd.append("file", blob, `voice.${ext}`);
           const res = await api.post("/voice/transcribe", fd);
-          if (res.data.text?.trim()) {
-            onTranscript(res.data.text.trim());
-            toast.success("Voice transcribed");
+          const text = (res.data?.text || "").trim();
+          if (text) {
+            onTranscript(text);
+            toast.success("Voice transcribed successfully");
           } else {
-            toast.error("Couldn't catch that — try again");
+            toast.error("No audible speech detected — please try again");
           }
-        } catch {
-          toast.error("Transcription failed");
+        } catch (e) {
+          console.error("Transcription error:", e);
+          const msg = e.response?.data?.detail || "Voice transcription service unavailable";
+          toast.error(msg);
         } finally {
           setProcessing(false);
         }
       };
-      mr.start();
+      mr.start(250);
       mediaRef.current = mr;
       setRecording(true);
-    } catch {
-      toast.error("Microphone access denied");
+    } catch (e) {
+      console.error("Microphone error:", e);
+      toast.error("Microphone permission denied or audio device not found");
     }
   };
 
   const stop = () => {
-    mediaRef.current?.stop();
+    if (mediaRef.current && mediaRef.current.state !== "inactive") {
+      mediaRef.current.stop();
+    }
     setRecording(false);
   };
 
   return (
-    <div className="flex flex-col items-center gap-3 rounded-xl border border-border bg-secondary/30 p-6">
+    <div className="flex flex-col items-center gap-4 rounded-2xl border border-white/10 bg-[#141720]/80 p-8 text-center transition-all duration-300">
       <div className="relative">
-        {recording && <span className="ac-pulse-ring absolute inset-0 rounded-full bg-primary/40" />}
+        {recording && (
+          <span className="absolute -inset-2 rounded-full bg-[#E63946]/30 animate-ping pointer-events-none" />
+        )}
         <button
+          type="button"
           data-testid="voice-record-btn"
           onClick={recording ? stop : start}
           disabled={processing}
-          className={`relative grid h-16 w-16 place-items-center rounded-full transition-colors duration-200 ${recording ? "bg-primary" : "bg-accent"} disabled:opacity-50`}
+          className={`relative grid h-16 w-16 place-items-center rounded-full transition-all duration-300 ${
+            recording
+              ? "bg-[#E63946] text-white shadow-[0_0_25px_rgba(230,57,70,0.6)]"
+              : "bg-white text-black hover:bg-neutral-200 shadow-lg shadow-white/5"
+          } disabled:opacity-50`}
         >
-          {processing ? <Loader2 className="h-6 w-6 animate-spin text-slate-900" /> : recording ? <Square className="h-6 w-6 text-white" fill="currentColor" /> : <Mic className="h-6 w-6 text-slate-900" />}
+          {processing ? (
+            <Loader2 className="h-6 w-6 animate-spin text-[#00F0FF]" />
+          ) : recording ? (
+            <Square className="h-6 w-6 text-white" fill="currentColor" />
+          ) : (
+            <Mic className="h-6 w-6 text-black" strokeWidth={2.5} />
+          )}
         </button>
       </div>
-      <p className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
-        {processing ? "Transcribing…" : recording ? "Recording — tap to stop" : "Tap to describe by voice"}
-      </p>
+      <div>
+        <p className="font-heading text-xs font-bold uppercase tracking-[0.2em] text-white">
+          {processing
+            ? "Transcribing with AI Whisper…"
+            : recording
+            ? "Recording audio · Tap to stop"
+            : "Tap to record vehicle symptoms"}
+        </p>
+        <p className="text-[11px] font-mono text-neutral-400 mt-1">
+          {recording
+            ? "Speak clearly about the issue (e.g. engine noise, brakes, battery)"
+            : "Whisper AI automatically transcribes speech into symptom text"}
+        </p>
+      </div>
     </div>
   );
 }
