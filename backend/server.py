@@ -391,9 +391,17 @@ async def auth_logout(request: Request, response: Response):
 
 
 @api_router.post("/auth/dealer/login")
-async def dealer_login(body: DealerLogin):
-    email = (body.email or "").strip().lower()
-    password = (body.password or "").strip()
+async def dealer_login(request: Request):
+    try:
+        body = await request.json()
+    except Exception:
+        try:
+            raw_bytes = await request.body()
+            body = json.loads(raw_bytes.decode())
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid JSON body")
+    email = (body.get("email") or "").strip().lower()
+    password = (body.get("password") or "").strip()
     dealer = await db.dealers.find_one({"email": email})
     if not dealer or not bcrypt.checkpw(password.encode(), dealer["password_hash"].encode()):
         raise HTTPException(status_code=401, detail="Invalid email or password")
