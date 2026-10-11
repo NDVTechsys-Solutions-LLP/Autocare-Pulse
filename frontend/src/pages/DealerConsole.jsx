@@ -410,7 +410,7 @@ function DealerDetail({ incident, team, onClose, onUpdate, onEscalate, onChat, o
               <p className="font-heading text-[10px] font-bold uppercase tracking-[0.2em] text-[#00F0FF]">
                 AI Diagnostic Directive
               </p>
-              <p className="mt-1 text-xs text-neutral-200 font-light leading-relaxed">
+              <p className="mt-1 text-xs text-neutral-200 font-light leading-relaxed whitespace-pre-line">
                 {incident.recommended_action}
               </p>
             </div>

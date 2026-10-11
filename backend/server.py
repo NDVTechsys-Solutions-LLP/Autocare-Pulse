@@ -310,19 +310,25 @@ async def get_current_dealer(authorization: Optional[str] = Header(None)):
 # ---------------- AI ----------------
 async def ai_classify(description: str, vehicle_model: str, image_b64: Optional[str] = None):
     system = (
-        "You are an automotive service triage AI for vehicle & two-wheeler dealers. "
-        "Classify the customer incident. Return ONLY valid minified JSON with keys: "
-        "category (one of: Engine, Electrical, Brakes, Body, Tyres, Transmission, Battery, Other), "
-        "severity (integer 1-5, 5 = safety critical), "
-        "priority (one of: High, Medium, Low), "
-        "summary (short one-line summary), "
-        "recommended_action (short technician instruction). No prose, no markdown."
+        "You are an expert Chief Automotive Diagnostic Technician and Service Director. "
+        "Analyze the customer's reported vehicle malfunction. Provide deep, technical triage customized specifically to the vehicle make/model and reported symptoms. "
+        "DO NOT use generic repetitive boilerplates like 'Perform diagnostic scan' or 'Inspect system for wear'. "
+        "Return ONLY a valid minified JSON object with the following keys:\n"
+        "category: one of [Engine, Brakes, Electrical, Battery, Transmission, Tyres, Suspension, Body, Locks, Cooling, Other],\n"
+        "severity: integer 1 to 5 (5 is critical safety hazard/drivability loss),\n"
+        "priority: 'High' (safety hazard/non-drivable), 'Medium' (drivable with caution), or 'Low' (minor/cosmetic),\n"
+        "summary: concise, descriptive summary of the specific mechanical/electrical failure,\n"
+        "root_cause: specific technical component failure hypothesis,\n"
+        "technician_directive: concrete step-by-step workshop inspection and diagnostic procedures,\n"
+        "customer_advice: clear practical guidance for the driver (whether safe to drive or stop),\n"
+        "recommended_action: a comprehensive formatted directive string combining root cause, technician steps, and driver guidance."
     )
     prompt = f"Vehicle: {vehicle_model}\nCustomer report: {description}"
     if image_b64:
         prompt += "\nAn image of the vehicle issue is attached. Factor visible damage into the assessment."
     try:
-        chat = LlmChat(api_key=EMERGENT_LLM_KEY, session_id=f"triage-{uuid.uuid4().hex[:8]}", system_message=system).with_model("openai", "gpt-5.4")
+        api_key = EMERGENT_LLM_KEY or os.environ.get("EMERGENT_LLM_KEY")
+        chat = LlmChat(api_key=api_key, session_id=f"triage-{uuid.uuid4().hex[:8]}", system_message=system).with_model("openai", "gpt-5.4")
         if image_b64:
             msg = UserMessage(text=prompt, file_contents=[ImageContent(image_base64=image_b64)])
         else:
@@ -339,16 +345,36 @@ async def ai_classify(description: str, vehicle_model: str, image_b64: Optional[
         prio = data.get("priority", "Medium")
         if prio not in PRIORITY_SLA:
             prio = "Medium"
+        
+        # Build comprehensive recommended action if not already rich
+        rec_action = data.get("recommended_action") or ""
+        root_cause = data.get("root_cause") or ""
+        directive = data.get("technician_directive") or ""
+        advice = data.get("customer_advice") or ""
+        if root_cause and directive:
+            rec_action = f"Probable Cause: {root_cause}\n\nWorkshop Directive: {directive}\n\nDriver Advisory: {advice}"
+
         return {
             "category": data.get("category", "Other"),
             "severity": int(data.get("severity", 3)),
             "priority": prio,
             "summary": data.get("summary", description[:80]),
-            "recommended_action": data.get("recommended_action", ""),
+            "root_cause": root_cause,
+            "technician_directive": directive,
+            "customer_advice": advice,
+            "recommended_action": rec_action or directive or "Inspect system according to OEM service manual.",
         }
     except Exception as e:
         logger.error(f"AI classify failed: {e}")
-        return {"category": "Other", "severity": 3, "priority": "Medium", "summary": description[:80], "recommended_action": "Manual triage required.", "ai_error": True}
+        return {
+            "category": "Other",
+            "severity": 3,
+            "priority": "Medium",
+            "summary": description[:80],
+            "root_cause": "System requires technician acoustic and physical diagnosis.",
+            "recommended_action": f"Physical technician assessment needed for {vehicle_model}: verify {description[:60]}.",
+            "ai_error": True
+        }
 
 
 # ---------------- Auth routes ----------------
@@ -445,9 +471,44 @@ async def transcribe(file: UploadFile = File(...)):
     filename = file.filename or "voice.webm"
     buf = io.BytesIO(data)
     buf.name = filename
-    stt = OpenAISpeechToText(api_key=EMERGENT_LLM_KEY)
+    api_key = EMERGENT_LLM_KEY or os.environ.get("EMERGENT_LLM_KEY")
+    stt = OpenAISpeechToText(api_key=api_key)
     resp = await stt.transcribe(file=buf, model="whisper-1", response_format="json")
-    text = getattr(resp, "text", "") or ""
+    text = (getattr(resp, "text", "") or "").strip()
+
+    # Smart automotive cleanup & translation:
+    # 1. Strips hallucinated/extraneous trailing noise (like "Angel")
+    # 2. Translates Hindi / Hinglish / regional Indian languages into natural English
+    # 3. Ensures vehicle terminology (shock absorber, brakes, battery, clutch) is accurate
+    if text and api_key:
+        try:
+            cleanup_prompt = (
+                f'User spoke their vehicle symptom: "{text}". '
+                'Clean up any speech recognition artifacts or phonetic mishearings (e.g. extraneous random words at the end). '
+                'If spoken in Hindi, Hinglish, or any regional language, translate it accurately to natural English. '
+                'If already in English, correct automotive phonetic typos (e.g. "break" -> "brake", "bearings" -> "bearings", "lock" -> "shock" if referring to suspension). '
+                'Return ONLY the clean English symptom text without commentary or quotes.'
+            )
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                res = await client.post(
+                    f"{STORAGE_BASE}/llm/chat/completions",
+                    headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                    json={
+                        "model": "gpt-4o-mini",
+                        "messages": [
+                            {"role": "system", "content": "You are an automotive service voice translator and transcript cleaner. Output only the clean English symptom report."},
+                            {"role": "user", "content": cleanup_prompt}
+                        ],
+                        "temperature": 0.1
+                    }
+                )
+                if res.status_code == 200:
+                    cleaned = res.json()["choices"][0]["message"]["content"].strip('"\n ')
+                    if cleaned:
+                        text = cleaned
+        except Exception as e:
+            logger.warning(f"Voice cleanup error: {e}")
+
     return {"text": text}
 
 
@@ -520,6 +581,9 @@ async def build_incident(user, payload: IncidentCreate, image_b64=None):
         "severity": ai["severity"],
         "priority": ai["priority"],
         "ai_summary": ai["summary"],
+        "root_cause": ai.get("root_cause", ""),
+        "technician_directive": ai.get("technician_directive", ""),
+        "customer_advice": ai.get("customer_advice", ""),
         "recommended_action": ai["recommended_action"],
         "ai_error": ai.get("ai_error", False),
         "status": "ai_triaged",

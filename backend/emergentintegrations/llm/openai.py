@@ -2,6 +2,10 @@ import os
 import logging
 import httpx
 
+from dotenv import load_dotenv
+from pathlib import Path
+load_dotenv(Path(__file__).resolve().parent.parent.parent / ".env")
+
 logger = logging.getLogger(__name__)
 
 
@@ -46,7 +50,10 @@ class OpenAISpeechToText:
 
             clean_filename = f"audio.{ext}"
             files = {"file": (clean_filename, content, ct)}
-            data = {"model": model or "whisper-1"}
+            data = {
+                "model": model or "whisper-1",
+                "prompt": "Automotive vehicle service report, car and motorcycle: engine, gearbox, clutch, shock absorber, brakes, battery, ignition, radiator, carburetor, suspension, exhaust, tyre puncture, EV motor, Creta, Swift, Activa, Pulsar, Duke, loud sound, vibration, smoke, overheating, breakdown."
+            }
             headers = {"Authorization": f"Bearer {self.api_key}"}
 
             url = f"{self.base_url}/llm/audio/transcriptions"

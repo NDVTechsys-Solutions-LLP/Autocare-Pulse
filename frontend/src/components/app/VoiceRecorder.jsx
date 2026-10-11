@@ -100,16 +100,8 @@ export default function VoiceRecorder({ onTranscript }) {
         }
 
         const localWords = speechTranscriptRef.current.trim();
-        if (localWords) {
-          onTranscript(localWords);
-          setLastTranscribed(localWords);
-          toast.success(`Voice transcribed: "${localWords.length > 35 ? localWords.slice(0, 35) + "…" : localWords}"`);
-          setProcessing(false);
-          setLivePreview("");
-          return;
-        }
 
-        // Fallback to Emergent Whisper AI backend if browser speech was empty
+        // High-precision AI Whisper transcription + translation
         setProcessing(true);
         try {
           const actualMime = mr.mimeType || "audio/webm";
@@ -123,14 +115,25 @@ export default function VoiceRecorder({ onTranscript }) {
           if (text) {
             onTranscript(text);
             setLastTranscribed(text);
-            toast.success(`Whisper transcribed: "${text.length > 35 ? text.slice(0, 35) + "…" : text}"`);
+            toast.success(`Voice Transcribed: "${text.length > 35 ? text.slice(0, 35) + "…" : text}"`);
+          } else if (localWords) {
+            // Fallback to local speech words if remote was blank
+            onTranscript(localWords);
+            setLastTranscribed(localWords);
+            toast.success(`Voice Transcribed: "${localWords.length > 35 ? localWords.slice(0, 35) + "…" : localWords}"`);
           } else {
             toast.error("No speech detected — please speak clearly into your mic and try again");
           }
         } catch (e) {
-          console.error("Transcription error:", e);
-          const msg = e.response?.data?.detail || "Voice transcription unavailable";
-          toast.error(msg);
+          console.warn("Whisper remote transcription notice:", e);
+          if (localWords) {
+            onTranscript(localWords);
+            setLastTranscribed(localWords);
+            toast.success(`Voice Transcribed (local): "${localWords.length > 35 ? localWords.slice(0, 35) + "…" : localWords}"`);
+          } else {
+            const msg = e.response?.data?.detail || "Voice transcription unavailable";
+            toast.error(msg);
+          }
         } finally {
           setProcessing(false);
           setLivePreview("");

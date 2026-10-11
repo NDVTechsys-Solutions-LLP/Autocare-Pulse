@@ -582,10 +582,11 @@ function DetailDialog({ incident, onClose }) {
 
           {incident.recommended_action && (
             <div className="rounded-xl border border-white/[0.08] bg-[#141720]/80 p-4">
-              <p className="font-heading text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400">
+              <p className="font-heading text-[10px] font-bold uppercase tracking-[0.2em] text-[#00F0FF] mb-1.5 flex items-center gap-1.5">
+                <Sparkles className="h-3.5 w-3.5 text-[#00F0FF]" />
                 AI Diagnostic Directive
               </p>
-              <p className="mt-1 text-xs text-neutral-200 font-light">
+              <p className="text-xs text-neutral-200 font-light whitespace-pre-line leading-relaxed">
                 {incident.recommended_action}
               </p>
             </div>
