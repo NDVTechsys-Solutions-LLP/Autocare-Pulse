@@ -22,6 +22,7 @@ import {
   Layers,
   ChevronRight,
   Activity,
+  Key,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,7 +52,7 @@ export default function Landing() {
   const navigate = useNavigate();
   const [dealerOpen, setDealerOpen] = useState(false);
   const [email, setEmail] = useState("ndvtechsys.solutions@gmail.com");
-  const [password, setPassword] = useState("");
+  const [password, setPassword] = useState("DealerPass123!");
   const [busy, setBusy] = useState(false);
 
   const googleLogin = () => {
@@ -60,14 +61,29 @@ export default function Landing() {
     window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
   };
 
+  const fillDemoCredentials = (e) => {
+    if (e?.preventDefault) e.preventDefault();
+    if (e?.stopPropagation) e.stopPropagation();
+    setEmail("ndvtechsys.solutions@gmail.com");
+    setPassword("DealerPass123!");
+    toast.success("Demo credentials loaded: ndvtechsys.solutions@gmail.com");
+  };
+
   const dealerLogin = async (e) => {
-    e.preventDefault();
+    if (e?.preventDefault) e.preventDefault();
+    const cleanEmail = (email || "").trim().toLowerCase();
+    const cleanPassword = (password || "").trim();
+    if (!cleanEmail || !cleanPassword) {
+      toast.error("Please enter email and password");
+      return;
+    }
     setBusy(true);
     try {
-      const res = await api.post("/auth/dealer/login", { email, password }, dealerCfg());
+      const res = await api.post("/auth/dealer/login", { email: cleanEmail, password: cleanPassword });
       localStorage.setItem("dealer_token", res.data.token);
       localStorage.setItem("dealer_info", JSON.stringify(res.data.dealer));
       toast.success(`Welcome, ${res.data.dealer.name}`);
+      setDealerOpen(false);
       navigate("/dealer");
     } catch (err) {
       toast.error(err.response?.data?.detail || "Login failed");
@@ -175,17 +191,39 @@ export default function Landing() {
                     className="bg-[#141720] border-white/10 text-white focus:border-white/40 h-11 rounded-lg"
                   />
                 </div>
+                <div className="flex gap-2">
+                  <button
+                    data-testid="dealer-login-submit"
+                    type="submit"
+                    disabled={busy}
+                    className="flex-1 h-11 rounded-lg bg-white text-black font-heading font-bold uppercase text-xs tracking-[0.2em] hover:bg-neutral-200 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    <span>{busy ? "Authenticating…" : "Enter Console →"}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={fillDemoCredentials}
+                    className="px-3 h-11 rounded-lg border border-white/20 bg-white/5 hover:bg-white/10 text-neutral-300 font-heading text-[10px] uppercase tracking-wider transition-colors shrink-0"
+                    title="Auto-fill Demo Credentials"
+                  >
+                    Auto-Fill Demo
+                  </button>
+                </div>
                 <button
-                  data-testid="dealer-login-submit"
-                  type="submit"
-                  disabled={busy}
-                  className="w-full h-11 rounded-lg bg-white text-black font-heading font-bold uppercase text-xs tracking-[0.2em] hover:bg-neutral-200 transition-colors disabled:opacity-50"
+                  type="button"
+                  onClick={fillDemoCredentials}
+                  className="w-full text-center bg-[#141720]/80 hover:bg-[#181c26] border border-white/10 hover:border-[#00F0FF]/40 rounded-lg p-2.5 transition-all cursor-pointer group"
                 >
-                  {busy ? "Authenticating…" : "Enter Console →"}
+                  <div className="flex items-center justify-center gap-1.5 text-white/90 group-hover:text-[#00F0FF]">
+                    <Key className="w-3.5 h-3.5 text-[#00F0FF]" />
+                    <span className="font-semibold text-[10px] uppercase tracking-wider font-heading">
+                      Click to Auto-fill Demo Credentials
+                    </span>
+                  </div>
+                  <p className="mt-1 font-mono text-[10px] text-neutral-400 group-hover:text-neutral-300">
+                    ndvtechsys.solutions@gmail.com &bull; DealerPass123!
+                  </p>
                 </button>
-                <p className="text-center font-mono text-[10px] text-neutral-500">
-                  Demo manager · ndvtechsys.solutions@gmail.com / DealerPass123!
-                </p>
               </form>
             </DialogContent>
           </Dialog>
@@ -1155,20 +1193,41 @@ export default function Landing() {
                     />
                   </div>
 
-                  <button
-                    data-testid="dealer-login-submit-embedded"
-                    type="submit"
-                    disabled={busy}
-                    className="w-full h-12 rounded-xl bg-white text-black font-heading font-bold uppercase text-xs tracking-[0.2em] hover:bg-neutral-200 transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-white/5"
-                  >
-                    <span>{busy ? "Authenticating…" : "Enter Workshop Console"}</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <button
+                      data-testid="dealer-login-submit-embedded"
+                      type="submit"
+                      disabled={busy}
+                      className="flex-1 h-12 rounded-xl bg-white text-black font-heading font-bold uppercase text-xs tracking-[0.2em] hover:bg-neutral-200 transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-white/5"
+                    >
+                      <span>{busy ? "Authenticating…" : "Enter Workshop Console"}</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={fillDemoCredentials}
+                      className="h-12 px-4 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-neutral-300 font-heading text-[11px] uppercase tracking-wider transition-colors shrink-0"
+                    >
+                      Fill Demo
+                    </button>
+                  </div>
 
-                  <div className="pt-2 text-center border-t border-white/[0.06]">
-                    <p className="font-mono text-[11px] text-neutral-500">
-                      Demo Manager: ndvtechsys.solutions@gmail.com / DealerPass123!
-                    </p>
+                  <div className="pt-2 border-t border-white/[0.06]">
+                    <button
+                      type="button"
+                      onClick={fillDemoCredentials}
+                      className="w-full text-center bg-[#141720]/80 hover:bg-[#181c26] border border-white/10 hover:border-[#00F0FF]/40 rounded-xl p-3 transition-all cursor-pointer group"
+                    >
+                      <div className="flex items-center justify-center gap-2 text-white/90 group-hover:text-[#00F0FF]">
+                        <Key className="w-3.5 h-3.5 text-[#00F0FF]" />
+                        <span className="font-semibold text-[11px] uppercase tracking-wider font-heading">
+                          Click to Auto-fill Demo Credentials
+                        </span>
+                      </div>
+                      <p className="mt-1 font-mono text-[11px] text-neutral-400 group-hover:text-neutral-300">
+                        Demo Manager: ndvtechsys.solutions@gmail.com &bull; DealerPass123!
+                      </p>
+                    </button>
                   </div>
                 </form>
               </div>

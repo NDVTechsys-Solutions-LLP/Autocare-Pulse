@@ -392,8 +392,10 @@ async def auth_logout(request: Request, response: Response):
 
 @api_router.post("/auth/dealer/login")
 async def dealer_login(body: DealerLogin):
-    dealer = await db.dealers.find_one({"email": body.email.lower()})
-    if not dealer or not bcrypt.checkpw(body.password.encode(), dealer["password_hash"].encode()):
+    email = (body.email or "").strip().lower()
+    password = (body.password or "").strip()
+    dealer = await db.dealers.find_one({"email": email})
+    if not dealer or not bcrypt.checkpw(password.encode(), dealer["password_hash"].encode()):
         raise HTTPException(status_code=401, detail="Invalid email or password")
     token = pyjwt.encode({"dealer_id": dealer["dealer_id"], "exp": now_utc() + timedelta(days=7)}, JWT_SECRET, algorithm="HS256")
     return {"token": token, "dealer": {"dealer_id": dealer["dealer_id"], "email": dealer["email"], "name": dealer["name"], "role": dealer["role"], "dealership_id": dealer.get("dealership_id"), "dealership_name": dealer.get("dealership_name")}}
@@ -1256,10 +1258,10 @@ async def seed():
         ("northbay.manager@autocare.com", "North Bay Manager", "d_northbay"),
     ]
     for email, name, did in managers:
+        pw = bcrypt.hashpw("DealerPass123!".encode(), bcrypt.gensalt()).decode()
         if await db.dealers.find_one({"email": email}):
-            await db.dealers.update_one({"email": email}, {"$set": {"dealership_id": did, "dealership_name": dmap[did]}})
+            await db.dealers.update_one({"email": email}, {"$set": {"dealership_id": did, "dealership_name": dmap[did], "password_hash": pw}})
         else:
-            pw = bcrypt.hashpw("DealerPass123!".encode(), bcrypt.gensalt()).decode()
             await db.dealers.insert_one({"dealer_id": f"dealer_{uuid.uuid4().hex[:10]}", "email": email, "password_hash": pw, "name": name, "role": "manager", "dealership_id": did, "dealership_name": dmap[did], "created_at": iso(now_utc())})
     techs = [
         ("Ravi Kumar", "ravi.tech@autocare.com", "d_metro"),
@@ -1273,10 +1275,10 @@ async def seed():
         ("Omar Farouk", "omar.tech@autocare.com", "d_northbay"),
     ]
     for name, email, did in techs:
+        pw = bcrypt.hashpw("TechPass123!".encode(), bcrypt.gensalt()).decode()
         if await db.dealers.find_one({"email": email}):
-            await db.dealers.update_one({"email": email}, {"$set": {"dealership_id": did, "dealership_name": dmap[did]}})
+            await db.dealers.update_one({"email": email}, {"$set": {"dealership_id": did, "dealership_name": dmap[did], "password_hash": pw}})
         else:
-            pw = bcrypt.hashpw("TechPass123!".encode(), bcrypt.gensalt()).decode()
             await db.dealers.insert_one({"dealer_id": f"dealer_{uuid.uuid4().hex[:10]}", "email": email, "password_hash": pw, "name": name, "role": "technician", "specialty": "General Service", "dealership_id": did, "dealership_name": dmap[did], "created_at": iso(now_utc())})
     # Backfill legacy incidents/callbacks without a dealership to the flagship (owner) branch
     await db.incidents.update_many({"$or": [{"dealership_id": {"$exists": False}}, {"dealership_id": None}]}, {"$set": {"dealership_id": "d_metro", "dealership_name": dmap["d_metro"]}})
@@ -1299,10 +1301,12 @@ async def root():
 
 
 app.include_router(api_router)
+raw_origins = [o.strip(' "\'') for o in os.environ.get('CORS_ORIGINS', '*').split(',') if o.strip(' "\'')]
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
+    allow_origin_regex=r"^https?://.*",
+    allow_origins=raw_origins if raw_origins else ["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
