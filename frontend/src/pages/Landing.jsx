@@ -215,16 +215,15 @@ export default function Landing() {
 
         {/* Centerpiece Hero */}
         <div className="relative z-10 max-w-4xl mx-auto text-center flex flex-col items-center justify-center my-auto">
-          {/* Cyan Pill Eyebrow directly from Reference Image */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
+          {/* Clean Typographic Eyebrow - Unboxed */}
+          <motion.p
+            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#00F0FF]/40 bg-[#00F0FF]/10 px-4 py-1.5 font-mono text-xs font-bold uppercase tracking-[0.2em] text-[#00F0FF]"
+            transition={{ duration: 0.5 }}
+            className="font-heading text-xs font-semibold tracking-[0.3em] uppercase text-[#00F0FF] mb-4 select-none"
           >
-            <span className="h-1.5 w-1.5 rounded-full bg-[#00F0FF] animate-pulse" />
-            <span>OEM · DEALER · CUSTOMER</span>
-          </motion.div>
+            OEM &bull; DEALER &bull; CUSTOMER
+          </motion.p>
 
           {/* Giant Stark White & Cyan Title */}
           <motion.h1
@@ -256,28 +255,18 @@ export default function Landing() {
             The Direct Telematics &amp; Service Bridge Between Drivers and Authorized Workshops
           </motion.p>
 
-          {/* High-Value Plain English Summary */}
-          <motion.p
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.25 }}
-            className="mt-6 text-sm md:text-base text-neutral-300 max-w-xl font-light leading-relaxed text-center"
-          >
-            When your vehicle faces a breakdown, speak or snap a photo. AI instantly classifies the mechanical failure, routes the case to your nearest authorized workshop, dispatches roadside assistance with live GPS, and guarantees your repair timeline.
-          </motion.p>
-
           {/* Dual Action Buttons */}
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
+            transition={{ duration: 0.6, delay: 0.25 }}
             className="mt-10 flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto"
           >
             {/* Customer Google Login */}
             <button
               data-testid="google-login-btn"
               onClick={googleLogin}
-              className="group flex items-center justify-center gap-3 px-8 py-3.5 rounded-full bg-white text-black font-heading font-bold text-xs uppercase tracking-[0.15em] hover:bg-neutral-200 transition-all duration-300 w-full sm:w-auto shadow-lg shadow-white/5"
+              className="group flex items-center justify-center gap-3 px-8 py-3.5 rounded-xl bg-white text-black font-heading font-bold text-xs uppercase tracking-[0.15em] hover:bg-neutral-200 transition-all duration-300 w-full sm:w-auto shadow-lg shadow-white/5"
             >
               <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
                 <path
@@ -304,27 +293,11 @@ export default function Landing() {
             {/* Dealer Portal Direct Button */}
             <button
               onClick={() => setDealerOpen(true)}
-              className="px-8 py-3.5 rounded-full border border-white/20 text-neutral-300 font-heading font-semibold text-xs uppercase tracking-[0.15em] hover:bg-white/[0.06] hover:text-white transition-all duration-300 w-full sm:w-auto"
+              className="px-8 py-3.5 rounded-xl border border-white/20 text-neutral-300 font-heading font-semibold text-xs uppercase tracking-[0.15em] hover:bg-white/[0.06] hover:text-white transition-all duration-300 w-full sm:w-auto"
             >
               Dealer Ops Console
             </button>
           </motion.div>
-
-          {/* 3 Quick Value Highlights with Brand Accents */}
-          <div className="mt-12 flex flex-wrap items-center justify-center gap-6 font-mono text-[11px] text-neutral-300">
-            <span className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-[#00F0FF] shadow-[0_0_8px_#00F0FF]" />
-              Voice &amp; Photo AI Intake
-            </span>
-            <span className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-[#00F0FF] shadow-[0_0_8px_#00F0FF]" />
-              Live Roadside GPS Dispatch
-            </span>
-            <span className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-[#E63946] shadow-[0_0_8px_#E63946]" />
-              Guaranteed 4-Hour Emergency SLA
-            </span>
-          </div>
         </div>
 
         {/* Bottom Section Indicators */}
@@ -359,8 +332,8 @@ export default function Landing() {
             <h2 className="font-heading font-black text-3xl sm:text-5xl md:text-6xl uppercase tracking-[0.08em] text-white">
               WHY VEHICLE BREAKDOWNS ARE BROKEN
             </h2>
-            <p className="mt-4 text-xs sm:text-sm text-neutral-400 max-w-2xl mx-auto font-light leading-relaxed">
-              When a vehicle fails on the road, confusion costs hours. Compare the standard industry ordeal with the AutoCare Pulse experience.
+            <p className="mt-5 text-sm sm:text-base text-neutral-300 max-w-2xl mx-auto font-light leading-relaxed">
+              When your vehicle faces a breakdown, speak or snap a photo. AI instantly classifies the mechanical failure, routes the case to your nearest authorized workshop, dispatches roadside assistance with live GPS, and guarantees your repair timeline.
             </p>
           </div>
 
