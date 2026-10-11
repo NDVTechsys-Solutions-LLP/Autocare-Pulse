@@ -30,11 +30,11 @@ export default function CCPSoftphone({ ccpUrl }) {
 
   if (!ccpUrl) {
     return (
-      <div data-testid="ccp-softphone-placeholder" className="rounded-xl border border-dashed border-border bg-card/50 p-6">
-        <h3 className="font-heading text-xl font-semibold">Embedded Softphone</h3>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Add <span className="font-mono text-accent">AWS_CONNECT_CCP_URL</span> (e.g.
-          <span className="font-mono"> https://your-instance.my.connect.aws/ccp-v2/</span>) to <span className="font-mono">backend/.env</span> and approve this app's origin in
+      <div data-testid="ccp-softphone-placeholder" className="rounded-2xl border border-dashed border-white/10 bg-[#0e1015]/60 p-8 text-center">
+        <h3 className="font-heading text-lg font-bold uppercase tracking-tight text-white">Embedded Softphone</h3>
+        <p className="mt-2 text-xs text-neutral-400 font-light leading-relaxed max-w-lg mx-auto">
+          Add <span className="font-mono text-[#00F0FF] bg-white/[0.04] px-1.5 py-0.5 rounded border border-white/10">AWS_CONNECT_CCP_URL</span> (e.g.
+          <span className="font-mono text-neutral-300"> https://your-instance.my.connect.aws/ccp-v2/</span>) to <span className="font-mono text-neutral-300">backend/.env</span> and approve this app's origin in
           Amazon Connect → Application integration → Approved origins to embed the live agent softphone here.
         </p>
       </div>
@@ -42,9 +42,9 @@ export default function CCPSoftphone({ ccpUrl }) {
   }
 
   return (
-    <div className="rounded-xl border border-border bg-[#111827] p-3">
-      <h3 className="mb-2 font-heading text-xl font-semibold">Embedded Softphone</h3>
-      <div ref={ref} data-testid="ccp-softphone" className="h-[560px] w-full overflow-hidden rounded-lg border border-border bg-black" />
+    <div className="rounded-2xl border border-white/[0.08] bg-[#0e1015] p-6 hover:border-white/15 transition-all">
+      <h3 className="mb-4 font-heading text-lg font-bold uppercase tracking-tight text-white">Embedded Softphone</h3>
+      <div ref={ref} data-testid="ccp-softphone" className="h-[560px] w-full overflow-hidden rounded-xl border border-white/10 bg-black" />
     </div>
   );
 }

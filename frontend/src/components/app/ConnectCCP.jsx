@@ -47,70 +47,106 @@ export default function ConnectCCP({ status, onCall, incidentId }) {
   };
 
   return (
-    <div className="rounded-xl border border-border bg-[#111827] p-5">
+    <div className="rounded-2xl border border-white/[0.08] bg-[#0e1015] p-6 hover:border-white/15 transition-all duration-300">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Radio className="h-5 w-5 text-accent" />
-          <h3 className="font-heading text-xl font-semibold">Amazon Connect CCP</h3>
+        <div className="flex items-center gap-2.5">
+          <Radio className="h-5 w-5 text-[#00F0FF]" />
+          <h3 className="font-heading text-lg font-bold uppercase tracking-tight text-white">Amazon Connect CCP</h3>
         </div>
-        <span data-testid="connect-mode" className={`rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider ${live ? "bg-emerald-500/15 text-emerald-400" : "bg-amber-500/15 text-amber-400"}`}>
+        <span
+          data-testid="connect-mode"
+          className={`rounded-full px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-wider font-semibold ${
+            live
+              ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+              : "bg-amber-500/15 text-amber-400 border border-amber-500/30"
+          }`}
+        >
           {live ? "Live · AWS" : "Simulation"}
         </span>
       </div>
 
       {live && status?.instance_id && (
-        <p className="mt-1 truncate font-mono text-[10px] text-muted-foreground">Instance {status.instance_id}{status.source_phone ? ` · ${status.source_phone}` : ""}</p>
+        <p className="mt-1 truncate font-mono text-[10px] text-neutral-400">
+          Instance {status.instance_id}{status.source_phone ? ` · ${status.source_phone}` : ""}
+        </p>
       )}
 
-      <div className="mt-4 grid grid-cols-4 gap-2">
+      <div className="mt-5 grid grid-cols-4 gap-2">
         {metricCards.map((c) => (
-          <div key={c.label} data-testid={`connect-metric-${c.label.toLowerCase()}`} className="rounded-lg border border-border bg-secondary/30 p-2 text-center">
-            <c.icon className="mx-auto h-3.5 w-3.5 text-accent" />
-            <p className="mt-1 font-heading text-lg font-bold leading-none">{c.value}</p>
-            <p className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground">{c.label}</p>
+          <div
+            key={c.label}
+            data-testid={`connect-metric-${c.label.toLowerCase()}`}
+            className="rounded-xl border border-white/[0.06] bg-[#141720] p-2.5 text-center"
+          >
+            <c.icon className="mx-auto h-3.5 w-3.5 text-[#00F0FF]" />
+            <p className="mt-1.5 font-heading text-lg font-black text-white leading-none">{c.value}</p>
+            <p className="mt-1 font-mono text-[9px] uppercase tracking-wider text-neutral-400">{c.label}</p>
           </div>
         ))}
       </div>
 
-      <div className="mt-4 flex items-center gap-2">
+      <div className="mt-4 flex items-center gap-2 flex-wrap">
         {AGENT_STATES.map((s) => (
-          <button key={s} data-testid={`agent-state-${s.toLowerCase().replace(/ /g, "-")}`} onClick={() => setAgentState(s)}
-            className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 font-mono text-[11px] uppercase tracking-wider transition-colors duration-200 ${agentState === s ? "border-accent bg-accent/10 text-accent" : "border-border text-muted-foreground"}`}>
+          <button
+            key={s}
+            data-testid={`agent-state-${s.toLowerCase().replace(/ /g, "-")}`}
+            onClick={() => setAgentState(s)}
+            className={`flex items-center gap-1.5 rounded-full border px-3 py-1 font-mono text-[11px] uppercase tracking-wider transition-colors duration-200 ${
+              agentState === s
+                ? "border-[#00F0FF] bg-[#00F0FF]/10 text-[#00F0FF]"
+                : "border-white/10 text-neutral-400 hover:text-white hover:border-white/30"
+            }`}
+          >
             <Circle className="h-2 w-2 fill-current" /> {s}
           </button>
         ))}
       </div>
 
-      <div className="mt-4 space-y-2">
+      <div className="mt-5 space-y-2.5">
         <Input
           data-testid="connect-destination-input"
           value={dest}
           onChange={(e) => setDest(e.target.value)}
           placeholder={live ? "Destination +14155550100" : "Destination (optional in sim)"}
-          className="bg-secondary/50 font-mono text-sm"
+          className="bg-[#141720] border-white/10 text-white placeholder:text-neutral-600 rounded-xl font-mono text-xs h-10"
         />
         <div className="flex gap-2">
-          <Button data-testid="connect-place-call" onClick={placeCall} disabled={dialing} className="flex-1 rounded-full bg-emerald-600 font-bold hover:bg-emerald-500">
+          <Button
+            data-testid="connect-place-call"
+            onClick={placeCall}
+            disabled={dialing}
+            className="flex-1 rounded-full bg-emerald-600 hover:bg-emerald-500 font-heading text-xs font-bold uppercase tracking-wider text-white shadow-lg shadow-emerald-950/40"
+          >
             <Phone className="mr-2 h-4 w-4" /> {dialing ? "Dialing…" : live ? "Call via Connect" : "Place Call"}
           </Button>
-          <Button variant="outline" onClick={() => setAgentState("After Work")} className="rounded-full border-border">
+          <Button
+            variant="outline"
+            onClick={() => setAgentState("After Work")}
+            className="rounded-full border border-white/15 bg-white/[0.04] text-white hover:bg-white/10 hover:border-white/30"
+          >
             <PhoneOff className="h-4 w-4" />
           </Button>
         </div>
       </div>
 
-      <div className="ac-scroll mt-4 max-h-40 space-y-2 overflow-y-auto">
-        <p className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Recent Contacts</p>
-        {calls.length === 0 && <p className="text-sm text-muted-foreground">No calls yet.</p>}
-        {calls.map((c) => (
-          <div key={c.id} className="rounded-lg border border-border bg-secondary/30 p-2.5">
-            <div className="flex items-center justify-between">
-              <span className="font-mono text-xs text-accent">{c.contact_id || c.id}</span>
-              <span className="font-mono text-[10px] text-muted-foreground">{new Date(c.started_at).toLocaleTimeString()}</span>
+      <div className="mt-5 pt-4 border-t border-white/[0.06]">
+        <p className="font-heading text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400 mb-2.5">
+          Recent Contacts
+        </p>
+        <div className="ac-scroll max-h-44 space-y-2 overflow-y-auto">
+          {calls.length === 0 && <p className="text-xs text-neutral-500 font-mono">No voice calls registered yet.</p>}
+          {calls.map((c) => (
+            <div key={c.id} className="rounded-xl border border-white/[0.06] bg-[#141720] p-3">
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-xs font-semibold text-[#00F0FF]">{c.contact_id || c.id}</span>
+                <span className="font-mono text-[10px] text-neutral-400">{new Date(c.started_at).toLocaleTimeString()}</span>
+              </div>
+              <p className="mt-1 truncate text-xs text-neutral-300 font-light">
+                {c.destination ? `${c.destination} · ` : ""}{c.transcript}
+              </p>
             </div>
-            <p className="mt-1 truncate text-xs text-muted-foreground">{c.destination ? `${c.destination} · ` : ""}{c.transcript}</p>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   );

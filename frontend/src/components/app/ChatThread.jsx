@@ -29,18 +29,25 @@ export default function ChatThread({ incidentId, role }) {
   };
 
   return (
-    <div className="rounded-xl border border-border bg-secondary/20 p-3">
-      <p className="mb-2 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Live Chat</p>
-      <div className="ac-scroll mb-2 max-h-56 space-y-2 overflow-y-auto pr-1" data-testid="chat-thread">
-        {messages.length === 0 && <p className="text-sm text-muted-foreground">No messages yet. Say hello.</p>}
+    <div className="rounded-xl border border-white/[0.08] bg-[#141720] p-4">
+      <p className="mb-2.5 font-heading text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400">Live Workshop Chat</p>
+      <div className="ac-scroll mb-3 max-h-56 space-y-2.5 overflow-y-auto pr-1" data-testid="chat-thread">
+        {messages.length === 0 && <p className="text-xs text-neutral-500 font-mono">No messages logged yet.</p>}
         {messages.map((m) => {
-          if (m.sender === "system") return <p key={m.id} className="text-center font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{m.text}</p>;
+          if (m.sender === "system") return <p key={m.id} className="text-center font-mono text-[10px] uppercase tracking-wider text-neutral-500">{m.text}</p>;
           const mine = (role === "dealer" && m.sender === "agent") || (role === "customer" && m.sender === "customer");
           return (
             <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-              <div data-testid={`chat-msg-${m.id}`} className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${mine ? "bg-accent/20" : "bg-secondary"}`}>
-                <p className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground">{m.sender_name || m.sender}</p>
-                <p>{m.text}</p>
+              <div
+                data-testid={`chat-msg-${m.id}`}
+                className={`max-w-[80%] rounded-2xl px-3.5 py-2 text-xs ${
+                  mine
+                    ? "bg-[#00F0FF]/15 text-neutral-100 border border-[#00F0FF]/30"
+                    : "bg-[#0e1015] text-neutral-200 border border-white/[0.08]"
+                }`}
+              >
+                <p className="font-mono text-[9px] uppercase tracking-wider text-neutral-400 font-semibold mb-0.5">{m.sender_name || m.sender}</p>
+                <p className="leading-relaxed">{m.text}</p>
               </div>
             </div>
           );
@@ -48,8 +55,23 @@ export default function ChatThread({ incidentId, role }) {
         <div ref={endRef} />
       </div>
       <div className="flex gap-2">
-        <Input data-testid="chat-input" value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} placeholder="Type a message…" className="bg-background" />
-        <Button data-testid="chat-send-btn" onClick={send} disabled={sending} size="icon" className="rounded-full bg-accent text-accent-foreground hover:bg-accent/90"><Send className="h-4 w-4" /></Button>
+        <Input
+          data-testid="chat-input"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && send()}
+          placeholder="Type message to driver / specialist…"
+          className="bg-[#0e1015] border-white/10 text-white placeholder:text-neutral-600 rounded-xl text-xs h-10"
+        />
+        <Button
+          data-testid="chat-send-btn"
+          onClick={send}
+          disabled={sending}
+          size="icon"
+          className="rounded-full bg-white text-black hover:bg-neutral-200 shrink-0 h-10 w-10"
+        >
+          <Send className="h-4 w-4" />
+        </Button>
       </div>
     </div>
   );

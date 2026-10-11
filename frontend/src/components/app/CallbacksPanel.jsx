@@ -18,24 +18,41 @@ export default function CallbacksPanel() {
   };
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5" data-testid="callbacks-panel">
-      <div className="mb-3 flex items-center gap-2">
-        <PhoneOutgoing className="h-5 w-5 text-accent" />
-        <h3 className="font-heading text-xl font-semibold">Callback Requests</h3>
-        <span className="ml-auto font-mono text-xs text-muted-foreground">{items.filter((c) => c.status === "pending").length} pending</span>
+    <div className="rounded-2xl border border-white/[0.08] bg-[#0e1015] p-6 hover:border-white/15 transition-all duration-300" data-testid="callbacks-panel">
+      <div className="mb-4 flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <PhoneOutgoing className="h-5 w-5 text-[#00F0FF]" />
+          <h3 className="font-heading text-lg font-bold uppercase tracking-tight text-white">Callback Requests</h3>
+        </div>
+        <span className="rounded-full px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-wider bg-white/[0.06] text-neutral-300 border border-white/10">
+          {items.filter((c) => c.status === "pending").length} pending
+        </span>
       </div>
-      <div className="ac-scroll max-h-72 space-y-2 overflow-y-auto">
-        {items.length === 0 && <p className="text-sm text-muted-foreground">No callback requests yet.</p>}
+      <div className="ac-scroll max-h-72 space-y-2.5 overflow-y-auto">
+        {items.length === 0 && <p className="text-xs text-neutral-500 font-mono">No callback requests registered yet.</p>}
         {items.map((c) => (
-          <div key={c.id} data-testid={`callback-${c.id}`} className="flex items-center justify-between rounded-lg border border-border bg-secondary/30 p-3">
+          <div key={c.id} data-testid={`callback-${c.id}`} className="flex items-center justify-between rounded-xl border border-white/[0.06] bg-[#141720] p-3.5">
             <div>
-              <p className="text-sm"><span className="font-mono text-accent">{c.phone}</span> · {c.customer_name}</p>
-              <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{c.incident_id} · {new Date(c.created_at).toLocaleTimeString()}</p>
+              <p className="text-sm">
+                <span className="font-mono text-xs font-semibold text-[#00F0FF]">{c.phone}</span> · <span className="text-white font-medium">{c.customer_name}</span>
+              </p>
+              <p className="font-mono text-[10px] uppercase tracking-wider text-neutral-400 mt-0.5">
+                {c.incident_id} · {new Date(c.created_at).toLocaleTimeString()}
+              </p>
             </div>
             {c.status === "pending" ? (
-              <Button data-testid={`callback-place-${c.id}`} onClick={() => place(c.id)} size="sm" className="rounded-full bg-emerald-600 font-bold hover:bg-emerald-500">Place Call</Button>
+              <Button
+                data-testid={`callback-place-${c.id}`}
+                onClick={() => place(c.id)}
+                size="sm"
+                className="rounded-full bg-emerald-600 hover:bg-emerald-500 font-heading text-xs font-bold uppercase tracking-wider text-white shadow-lg shadow-emerald-950/40"
+              >
+                Place Call
+              </Button>
             ) : (
-              <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 font-mono text-[10px] uppercase text-emerald-400">{c.status}</span>
+              <span className="rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-0.5 font-mono text-[10px] uppercase text-emerald-400">
+                {c.status}
+              </span>
             )}
           </div>
         ))}

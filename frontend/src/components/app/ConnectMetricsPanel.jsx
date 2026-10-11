@@ -38,19 +38,35 @@ export default function ConnectMetricsPanel() {
   ];
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5">
-      <div className="mb-4 flex items-center justify-between">
-        <h3 className="font-heading text-xl font-semibold">Amazon Connect — Live Contact Metrics</h3>
-        <span data-testid="connect-metrics-mode" className={`rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider ${data.mode === "live" ? "bg-emerald-500/15 text-emerald-400" : "bg-amber-500/15 text-amber-400"}`}>
+    <div className="rounded-2xl border border-white/[0.08] bg-[#0e1015] p-6 hover:border-white/15 transition-all duration-300">
+      <div className="mb-5 flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <Activity className="h-5 w-5 text-[#00F0FF]" />
+          <h3 className="font-heading text-lg font-bold uppercase tracking-tight text-white">
+            Amazon Connect — Live Contact Metrics
+          </h3>
+        </div>
+        <span
+          data-testid="connect-metrics-mode"
+          className={`rounded-full px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-wider font-semibold ${
+            data.mode === "live"
+              ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+              : "bg-amber-500/15 text-amber-400 border border-amber-500/30"
+          }`}
+        >
           {data.mode === "live" ? "Live · AWS" : "Simulation"}
         </span>
       </div>
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {cards.map((x) => (
-          <div key={x.label} data-testid={`connect-kpi-${x.label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`} className="rounded-lg border border-border bg-secondary/30 p-4">
-            <x.icon className="h-4 w-4 text-accent" />
-            <p className="mt-2 font-heading text-2xl font-extrabold">{x.value}</p>
-            <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{x.label}</p>
+          <div
+            key={x.label}
+            data-testid={`connect-kpi-${x.label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`}
+            className="rounded-xl border border-white/[0.06] bg-[#141720] p-4"
+          >
+            <x.icon className="h-4 w-4 text-[#00F0FF]" />
+            <p className="mt-2 font-heading text-2xl font-black text-white">{x.value}</p>
+            <p className="font-mono text-[10px] uppercase tracking-wider text-neutral-400 mt-1">{x.label}</p>
           </div>
         ))}
       </div>
