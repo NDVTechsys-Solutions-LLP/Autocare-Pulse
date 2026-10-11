@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Shield,
+  ShieldCheck,
   ArrowRight,
   Wrench,
   CheckCircle2,
@@ -100,23 +101,26 @@ export default function Landing() {
         </div>
 
         {/* Navigation Links */}
-        <nav className="flex items-center gap-6 md:gap-8 font-heading text-xs uppercase tracking-[0.2em] text-neutral-400 font-medium">
-          <button onClick={() => scrollTo("section-01")} className="hover:text-white transition-colors hidden lg:block">
+        <nav className="flex items-center gap-5 md:gap-7 font-heading text-xs uppercase tracking-[0.2em] text-neutral-400 font-medium">
+          <button onClick={() => scrollTo("section-01")} className="hover:text-white transition-colors hidden xl:block">
             Overview
           </button>
-          <button onClick={() => scrollTo("section-02")} className="hover:text-white transition-colors hidden md:block">
+          <button onClick={() => scrollTo("section-02")} className="hover:text-white transition-colors hidden lg:block">
             The Problem
           </button>
-          <button onClick={() => scrollTo("section-03")} className="hover:text-white transition-colors hidden sm:block">
+          <button onClick={() => scrollTo("section-03")} className="hover:text-white transition-colors hidden md:block">
             How It Works
           </button>
-          <button onClick={() => scrollTo("section-04")} className="hover:text-white transition-colors hidden lg:block">
+          <button onClick={() => scrollTo("section-04")} className="hover:text-white transition-colors hidden sm:block text-[#00F0FF]">
+            AI Triage &amp; VIP
+          </button>
+          <button onClick={() => scrollTo("section-05")} className="hover:text-white transition-colors hidden lg:block">
             Portals
           </button>
-          <button onClick={() => scrollTo("section-05")} className="hover:text-white transition-colors hidden md:block">
+          <button onClick={() => scrollTo("section-06")} className="hover:text-white transition-colors hidden md:block">
             Scenarios
           </button>
-          <button onClick={() => scrollTo("section-06")} className="hover:text-white transition-colors">
+          <button onClick={() => scrollTo("section-07")} className="hover:text-white transition-colors">
             Access
           </button>
 
@@ -235,14 +239,14 @@ export default function Landing() {
             AUTOCARE<span className="text-[#00F0FF]">PULSE</span>
           </motion.h1>
 
-          {/* Headline Phrase directly from Reference Image */}
+          {/* Headline Phrase: AI Triage From Customer Input to Dealer Action */}
           <motion.p
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.15 }}
             className="font-heading text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold uppercase tracking-tight text-white mt-5"
           >
-            INCIDENT COMMAND <span className="text-[#E63946]">FOR EVERY VEHICLE</span> ON THE ROAD
+            INTELLIGENT AI TRIAGE <span className="text-[#E63946]">FROM CUSTOMER INPUT</span> TO DEALER ACTION
           </motion.p>
 
           {/* Subtitle */}
@@ -250,9 +254,9 @@ export default function Landing() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="font-heading text-xs sm:text-sm font-medium tracking-[0.25em] uppercase text-neutral-400 mt-4 max-w-xl text-center leading-relaxed"
+            className="font-heading text-xs sm:text-sm font-medium tracking-[0.2em] uppercase text-neutral-400 mt-4 max-w-2xl text-center leading-relaxed"
           >
-            The Direct Telematics &amp; Service Bridge Between Drivers and Authorized Workshops
+            Instant photo analysis for cars &amp; bikes — guiding drivers to immediate dealer rescue or nearby authorized service centers with reserved bays.
           </motion.p>
 
           {/* Dual Action Buttons */}
@@ -333,7 +337,7 @@ export default function Landing() {
               WHY VEHICLE BREAKDOWNS ARE BROKEN
             </h2>
             <p className="mt-5 text-sm sm:text-base text-neutral-300 max-w-2xl mx-auto font-light leading-relaxed">
-              When your vehicle faces a breakdown, speak or snap a photo. AI instantly classifies the mechanical failure, routes the case to your nearest authorized workshop, dispatches roadside assistance with live GPS, and guarantees your repair timeline.
+              When a car or two-wheeler faces a breakdown, confusion and endless queueing cost critical hours. AutoCare Pulse AI analyzes customer photos, determines whether to dispatch immediate roadside rescue or guide to nearby authorized service centers, and gives subscribed Priority Customers accelerated resolution.
             </p>
           </div>
 
@@ -358,7 +362,7 @@ export default function Landing() {
                   <div className="flex items-start gap-3">
                     <span className="font-mono text-xs text-neutral-500 pt-0.5">01</span>
                     <p>
-                      <strong className="text-neutral-200 font-medium">Endless Phone Trees:</strong> Stranded drivers wait on hold with generic call centers trying to explain ambiguous symptoms layperson terms.
+                      <strong className="text-neutral-200 font-medium">Endless Phone Trees:</strong> Stranded drivers wait on hold with generic call centers trying to explain ambiguous symptoms in layperson terms.
                     </p>
                   </div>
                   <div className="flex items-start gap-3">
@@ -390,7 +394,7 @@ export default function Landing() {
             {/* The AutoCare Pulse Way */}
             <div className="rounded-2xl bg-[#0e1015] border border-white/20 p-8 sm:p-10 flex flex-col justify-between shadow-2xl relative">
               <div className="absolute top-4 right-4">
-                <span className="rounded-full bg-[#00F0FF]/15 border border-[#00F0FF]/35 px-3 py-1 font-heading text-[10px] font-bold uppercase tracking-wider text-[#00F0FF]">
+                <span className="rounded-md bg-[#00F0FF]/15 border border-[#00F0FF]/35 px-2.5 py-1 font-heading text-[10px] font-bold uppercase tracking-wider text-[#00F0FF]">
                   AUTOCARE PULSE STANDARD
                 </span>
               </div>
@@ -399,7 +403,7 @@ export default function Landing() {
                 <div className="flex items-center justify-between pb-6 border-b border-white/[0.06]">
                   <div>
                     <span className="font-heading text-[10px] font-bold tracking-[0.25em] uppercase text-[#00F0FF]">
-                      CONNECTED TELEMATICS
+                      CONNECTED TELEMATICS &bull; AI TRIAGE
                     </span>
                     <h3 className="font-heading font-black text-xl sm:text-2xl uppercase tracking-tight text-white mt-1">
                       The AutoCare Pulse Solution
@@ -412,25 +416,25 @@ export default function Landing() {
                   <div className="flex items-start gap-3">
                     <span className="font-mono text-xs text-white/60 pt-0.5">01</span>
                     <p>
-                      <strong className="text-white font-medium">5-Second AI Intake:</strong> Record a quick voice message or snap a photo. AI instantly transcribes and isolates the problem.
+                      <strong className="text-white font-medium">Photo &amp; Voice AI Triage (Cars &amp; Bikes):</strong> Driver snaps an image of vehicle damage or dashboard alert. AI Vision inspects severity and selects the best recovery path in &lt; 1.2s.
                     </p>
                   </div>
                   <div className="flex items-start gap-3">
                     <span className="font-mono text-xs text-white/60 pt-0.5">02</span>
                     <p>
-                      <strong className="text-white font-medium">Live GPS Rescue:</strong> Track the dispatched Roadside Assistance unit approaching on a live map with minutes-remaining countdown.
+                      <strong className="text-white font-medium">Smart Branching (Roadside vs Service Center):</strong> Stranded on the road? AI dispatches immediate dealer rescue with live GPS. Drivable? AI recommends all nearby authorized service centers with live bay openings.
                     </p>
                   </div>
                   <div className="flex items-start gap-3">
                     <span className="font-mono text-xs text-white/60 pt-0.5">03</span>
                     <p>
-                      <strong className="text-white font-medium">Transparent Bay Allocation:</strong> See your car assigned to a specific technician with a booked bay slot and queue position (#2 of 4).
+                      <strong className="text-white font-medium">Priority Customer Fast-Track:</strong> Subscribed Priority Customers bypass queues nationwide. Dealers receive an in-detail priority roster to expedite job cards first.
                     </p>
                   </div>
                   <div className="flex items-start gap-3">
                     <span className="font-mono text-xs text-white/60 pt-0.5">04</span>
                     <p>
-                      <strong className="text-white font-medium">Strict SLA Timers:</strong> High-priority incidents receive a strict 4-hour countdown with automatic OEM management escalation.
+                      <strong className="text-white font-medium">Strict SLA &amp; Peak Satisfaction:</strong> Dedicated technician assignment, real-time progress updates, and a guaranteed 4-hour countdown ensure vehicles return to the road faster.
                     </p>
                   </div>
                 </div>
@@ -469,14 +473,14 @@ export default function Landing() {
         <div className="relative z-10 max-w-6xl mx-auto w-full my-auto">
           {/* Header */}
           <div className="text-center mb-16">
-            <p className="font-heading text-xs font-semibold tracking-[0.25em] uppercase text-neutral-400 mb-3">
+            <p className="font-heading text-xs font-semibold tracking-[0.25em] uppercase text-[#00F0FF] mb-3">
               SIMPLE 4-STEP LOOP
             </p>
             <h2 className="font-heading font-black text-3xl sm:text-5xl md:text-6xl uppercase tracking-[0.08em] text-white">
               HOW AUTOCARE PULSE WORKS
             </h2>
             <p className="mt-4 text-xs sm:text-sm text-neutral-400 max-w-xl mx-auto font-light leading-relaxed">
-              From roadside symptom to signed-off fix — a streamlined process designed for zero friction.
+              From roadside photo capture to authorized dealer sign-off — an intelligent loop designed for speed, clarity, and prioritized care.
             </p>
           </div>
 
@@ -489,17 +493,17 @@ export default function Landing() {
                   <span className="font-mono text-xs font-bold text-[#00F0FF] bg-[#00F0FF]/15 border border-[#00F0FF]/30 px-2.5 py-1 rounded">
                     STEP 01
                   </span>
-                  <Mic className="h-5 w-5 text-[#00F0FF]" />
+                  <Camera className="h-5 w-5 text-[#00F0FF]" />
                 </div>
                 <h3 className="font-heading font-bold text-lg text-white uppercase tracking-wide">
-                  Report in Seconds
+                  Photo &amp; Voice Intake
                 </h3>
                 <p className="mt-3 text-xs text-neutral-400 font-light leading-relaxed">
-                  Press Record and describe what happened, or snap a photo of the dashboard warning light or dent. Speech-to-text captures every detail without typing.
+                  Snap a photo of the vehicle issue (car or bike) or record a voice note. Whisper AI &amp; computer vision ingest visual damage and symptom descriptions in seconds.
                 </p>
               </div>
               <div className="mt-6 pt-4 border-t border-white/[0.06] text-[11px] font-mono text-neutral-500">
-                Takes &lt; 15 seconds
+                Cars &amp; Two-Wheelers
               </div>
             </div>
 
@@ -513,14 +517,14 @@ export default function Landing() {
                   <Cpu className="h-5 w-5 text-[#00F0FF]" />
                 </div>
                 <h3 className="font-heading font-bold text-lg text-white uppercase tracking-wide">
-                  Instant AI Triage
+                  AI Triage &amp; Decision
                 </h3>
                 <p className="mt-3 text-xs text-neutral-400 font-light leading-relaxed">
-                  AI categorizes the system (Engine, Brakes, Battery, Electrical, Tyres), calculates a 1–5 severity rating, and sets a strict SLA countdown timer.
+                  AI chooses the optimal path: dispatches Immediate Dealer Rescue if non-drivable, or recommends nearby authorized service centers with reserved bays if drivable.
                 </p>
               </div>
               <div className="mt-6 pt-4 border-t border-white/[0.06] text-[11px] font-mono text-neutral-500">
-                Triaged in &lt; 2.5 seconds
+                Decisioned in &lt; 1.2s
               </div>
             </div>
 
@@ -534,14 +538,14 @@ export default function Landing() {
                   <Wrench className="h-5 w-5 text-[#E63946]" />
                 </div>
                 <h3 className="font-heading font-bold text-lg text-white uppercase tracking-wide">
-                  Workshop Dispatch
+                  Dealer Handshake
                 </h3>
                 <p className="mt-3 text-xs text-neutral-400 font-light leading-relaxed">
-                  Your nearest authorized dealership receives the diagnostic directive. They dispatch Roadside Assistance with live GPS, or reserve an express workshop bay.
+                  Diagnostics route straight to the dealership console. Subscribed Priority Customers flash at the top of the dealer's VIP queue for immediate technician allocation.
                 </p>
               </div>
               <div className="mt-6 pt-4 border-t border-white/[0.06] text-[11px] font-mono text-neutral-500">
-                Assigned to verified specialist
+                Priority VIP Queue
               </div>
             </div>
 
@@ -555,14 +559,14 @@ export default function Landing() {
                   <Clock className="h-5 w-5 text-[#E63946]" />
                 </div>
                 <h3 className="font-heading font-bold text-lg text-white uppercase tracking-wide">
-                  Live Resolution
+                  Rapid Resolution
                 </h3>
                 <p className="mt-3 text-xs text-neutral-400 font-light leading-relaxed">
-                  Watch live progress milestones, chat directly with the technician, reschedule bay appointments with one tap, and get guaranteed SLA completion.
+                  Track live recovery GPS and workshop bay milestones, chat with mechanics directly, and experience accelerated turnaround under strict SLA completion.
                 </p>
               </div>
               <div className="mt-6 pt-4 border-t border-white/[0.06] text-[11px] font-mono text-neutral-500">
-                100% Transparent journey
+                Peak Customer Satisfaction
               </div>
             </div>
           </div>
@@ -585,10 +589,161 @@ export default function Landing() {
       </section>
 
       {/* =========================================================================
-          SECTION .04 — TWO DEDICATED PORTALS (DRIVER VS DEALER)
+          SECTION .04 — AI TRIAGE ENGINE & PRIORITY CUSTOMER SUBSCRIPTION
           ========================================================================= */}
       <section
         id="section-04"
+        className="relative min-h-screen flex flex-col justify-between px-6 md:px-14 py-24 border-b border-white/[0.05]"
+      >
+        <div className="relative z-10 max-w-6xl mx-auto w-full my-auto">
+          {/* Header */}
+          <div className="text-center mb-16">
+            <p className="font-heading text-xs font-semibold tracking-[0.25em] uppercase text-[#00F0FF] mb-3">
+              INTELLIGENT DECISION ENGINE &bull; NATIONWIDE VIP SCALE
+            </p>
+            <h2 className="font-heading font-black text-3xl sm:text-5xl md:text-6xl uppercase tracking-[0.08em] text-white">
+              AI TRIAGE &amp; PRIORITY SUBSCRIPTION
+            </h2>
+            <p className="mt-4 text-xs sm:text-sm text-neutral-400 max-w-2xl mx-auto font-light leading-relaxed">
+              How AutoCare Pulse analyzes car and bike issues via image or voice, calculates the optimal customer outcome, and delivers accelerated dealer resolution for millions of vehicle owners.
+            </p>
+          </div>
+
+          {/* Two-Column Deep Dive */}
+          <div className="grid gap-8 lg:grid-cols-2 items-stretch">
+            {/* Left Card: AI Triage Decision Engine */}
+            <div className="rounded-2xl bg-[#0e1015] border border-white/[0.08] p-8 sm:p-10 flex flex-col justify-between hover:border-[#00F0FF]/30 transition-all">
+              <div>
+                <div className="flex items-center justify-between pb-6 border-b border-white/[0.06]">
+                  <div>
+                    <span className="font-heading text-[10px] font-bold tracking-[0.25em] uppercase text-[#00F0FF]">
+                      MULTIMODAL DIAGNOSTIC ENGINE
+                    </span>
+                    <h3 className="font-heading font-black text-xl sm:text-2xl uppercase tracking-tight text-white mt-1">
+                      Intelligent AI Triage Working
+                    </h3>
+                  </div>
+                  <Cpu className="h-6 w-6 text-[#00F0FF]" />
+                </div>
+
+                <div className="space-y-4 pt-6 text-xs sm:text-sm text-neutral-300 font-light leading-relaxed">
+                  <p className="text-neutral-300">
+                    When a customer encounters trouble on the road or at home, they upload an image or voice note describing the defect affecting their car or bike. AI Vision instantly analyzes the mechanical fault, warning light, or collision damage.
+                  </p>
+
+                  <div className="p-4 rounded-xl bg-[#141720] border border-white/[0.04] space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full bg-[#E63946]" />
+                      <h4 className="font-heading font-bold text-white text-xs uppercase tracking-wider">
+                        Outcome Path A — Immediate Dealer Roadside Assistance
+                      </h4>
+                    </div>
+                    <p className="text-neutral-400 text-xs">
+                      If the vehicle is immobilized, unsafe to drive, or stranded on a highway (e.g. engine blowout, tyre puncture, critical brake failure), AI immediately initiates emergency dealer dispatch. A recovery unit is deployed with live GPS telemetry and real-time tracking.
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-[#141720] border border-white/[0.04] space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full bg-[#00F0FF]" />
+                      <h4 className="font-heading font-bold text-white text-xs uppercase tracking-wider">
+                        Outcome Path B — Guided Nearby Authorized Service Centers
+                      </h4>
+                    </div>
+                    <p className="text-neutral-400 text-xs">
+                      If the vehicle remains safely drivable (e.g. sensor warning, minor suspension noise, scheduled maintenance), AI presents all verified nearby authorized service centers within radius. Drivers see live bay wait times and can reserve an express bay slot instantly.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-8 pt-4 border-t border-white/[0.06] text-[11px] font-mono text-neutral-400 flex items-center justify-between">
+                <span>Vision AI + Whisper Transcription</span>
+                <span className="text-[#00F0FF]">&lt; 1.2s Decision Latency</span>
+              </div>
+            </div>
+
+            {/* Right Card: Priority Customer Subscription */}
+            <div className="rounded-2xl bg-[#0e1015] border border-white/20 p-8 sm:p-10 flex flex-col justify-between shadow-2xl relative hover:border-[#E63946]/40 transition-all">
+              <div className="absolute top-4 right-4">
+                <span className="rounded-md bg-[#E63946]/15 border border-[#E63946]/35 px-2.5 py-1 font-heading text-[10px] font-bold uppercase tracking-wider text-[#E63946]">
+                  VIP SERVICE TIER
+                </span>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between pb-6 border-b border-white/[0.06]">
+                  <div>
+                    <span className="font-heading text-[10px] font-bold tracking-[0.25em] uppercase text-[#E63946]">
+                      NATIONWIDE SCALE (LAKHS &amp; CRORES OF VEHICLES)
+                    </span>
+                    <h3 className="font-heading font-black text-xl sm:text-2xl uppercase tracking-tight text-white mt-1">
+                      Priority Customer Subscription
+                    </h3>
+                  </div>
+                  <ShieldCheck className="h-6 w-6 text-[#E63946]" />
+                </div>
+
+                <div className="space-y-4 pt-6 text-xs sm:text-sm text-neutral-300 font-light leading-relaxed">
+                  <p className="text-neutral-300">
+                    With lakhs and crores of vehicle owners on Indian roads, workshop queues and roadside delays can leave drivers waiting for hours. By subscribing to the <strong className="text-white font-medium">Pulse Priority Membership</strong>, customers unlock guaranteed fast-track care.
+                  </p>
+
+                  <div className="p-4 rounded-xl bg-[#141720] border border-white/[0.04] space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full bg-[#E63946]" />
+                      <h4 className="font-heading font-bold text-white text-xs uppercase tracking-wider">
+                        Dedicated Dealer Priority Customer Roster
+                      </h4>
+                    </div>
+                    <p className="text-neutral-400 text-xs">
+                      Authorized service center foremen and dealers gain a dedicated, filtered list of Priority Customers. Whenever a subscriber faces a breakdown, their job ticket flashes at the top of the technician queue with comprehensive vehicle history.
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-[#141720] border border-white/[0.04] space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full bg-[#00F0FF]" />
+                      <h4 className="font-heading font-bold text-white text-xs uppercase tracking-wider">
+                        Accelerated AI &amp; Dealer Assistance
+                      </h4>
+                    </div>
+                    <p className="text-neutral-400 text-xs">
+                      Priority subscribers bypass ordinary queues. AI compute is accelerated, roadside recovery trucks are assigned first, and workshop bays are reserved before arrival — resolving issues substantially faster and elevating customer satisfaction.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-8 pt-4 border-t border-white/[0.06] text-[11px] font-mono text-neutral-400 flex items-center justify-between">
+                <span>Cuts Resolution Downtime by 60%</span>
+                <span className="text-[#E63946]">Guaranteed Priority SLA</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Section Indicators */}
+        <div className="relative z-10 flex items-end justify-between font-heading text-xs uppercase tracking-[0.2em] text-neutral-500 pt-12">
+          <div className="flex items-center gap-3">
+            <span className="font-bold text-neutral-400">.04</span>
+            <span className="hidden sm:inline text-[10px] tracking-[0.25em]">AI TRIAGE &amp; VIP</span>
+          </div>
+          <div
+            onClick={() => scrollTo("section-05")}
+            className="cursor-pointer flex items-center gap-2 hover:text-neutral-300 transition-colors"
+          >
+            <span className="text-[10px]">SCROLL</span>
+            <span>—</span>
+          </div>
+        </div>
+      </section>
+
+      {/* =========================================================================
+          SECTION .05 — TWO DEDICATED PORTALS (DRIVER VS DEALER)
+          ========================================================================= */}
+      <section
+        id="section-05"
         className="relative min-h-screen flex flex-col justify-between px-6 md:px-14 py-24 border-b border-white/[0.05]"
       >
         <div className="relative z-10 max-w-6xl mx-auto w-full my-auto">
@@ -625,37 +780,37 @@ export default function Landing() {
                 <div className="space-y-4 pt-6 text-xs sm:text-sm text-neutral-300 font-light">
                   <div className="p-4 rounded-xl bg-[#141720]/80 border border-white/[0.04]">
                     <h4 className="font-heading font-bold text-white text-sm uppercase">
-                      Multimodal Voice &amp; Photo Intake
+                      Multimodal Photo &amp; Voice AI Intake
                     </h4>
                     <p className="text-neutral-400 text-xs mt-1">
-                      Speak hands-free or take a photo of vehicle damage. Whisper AI transcribes accurately in real time.
+                      Take a photo of vehicle damage or speak hands-free. AI analyzes defects for cars and two-wheelers in real time.
                     </p>
                   </div>
 
                   <div className="p-4 rounded-xl bg-[#141720]/80 border border-white/[0.04]">
                     <h4 className="font-heading font-bold text-white text-sm uppercase">
-                      Live Roadside Assistance GPS
+                      Nearby Service Centers &amp; Bay Booking
                     </h4>
                     <p className="text-neutral-400 text-xs mt-1">
-                      Track the recovery truck en route to your vehicle on a live GPS map with real-time ETA updates.
+                      Browse certified authorized workshops nearby with live distance, queue times, and one-tap bay slot reservations.
                     </p>
                   </div>
 
                   <div className="p-4 rounded-xl bg-[#141720]/80 border border-white/[0.04]">
                     <h4 className="font-heading font-bold text-white text-sm uppercase">
-                      Bay Queue &amp; Reschedule Control
+                      Pulse Priority Subscription Pass
                     </h4>
                     <p className="text-neutral-400 text-xs mt-1">
-                      See your exact queue position (e.g. #2 in bay) and reschedule appointments with a single click.
+                      Enjoy VIP status nationwide. Bypass waiting queues with accelerated AI compute and fast-track dealer assistance.
                     </p>
                   </div>
 
                   <div className="p-4 rounded-xl bg-[#141720]/80 border border-white/[0.04]">
                     <h4 className="font-heading font-bold text-white text-sm uppercase">
-                      Direct Technician Chat &amp; Callback
+                      Live Roadside GPS &amp; Mechanic Chat
                     </h4>
                     <p className="text-neutral-400 text-xs mt-1">
-                      Chat directly with the technician working on your car, or request an immediate phone callback.
+                      Track approaching recovery units on live GPS maps and chat directly with your assigned workshop technician.
                     </p>
                   </div>
                 </div>
@@ -691,10 +846,19 @@ export default function Landing() {
                 <div className="space-y-4 pt-6 text-xs sm:text-sm text-neutral-300 font-light">
                   <div className="p-4 rounded-xl bg-[#141720]/80 border border-white/[0.04]">
                     <h4 className="font-heading font-bold text-white text-sm uppercase">
-                      AI Priority Orchestration Queue
+                      Dedicated Priority Customer Roster
                     </h4>
                     <p className="text-neutral-400 text-xs mt-1">
-                      Filter incoming issues by High/Medium/Low priority. Critical safety items are highlighted with SLA countdowns.
+                      Access an in-detail list of subscribed Priority Customers for immediate diagnostic allocation and VIP workshop attention.
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-[#141720]/80 border border-white/[0.04]">
+                    <h4 className="font-heading font-bold text-white text-sm uppercase">
+                      AI Triage &amp; Pathway Directive
+                    </h4>
+                    <p className="text-neutral-400 text-xs mt-1">
+                      Pre-analyzed incident data indicating whether the vehicle requires roadside rescue or express bay check-in.
                     </p>
                   </div>
 
@@ -703,7 +867,7 @@ export default function Landing() {
                       Amazon Connect Cloud Softphone
                     </h4>
                     <p className="text-neutral-400 text-xs mt-1">
-                      Built-in contact center CCP dialer with softphone calling, live call transcripts, and recorded audio logs.
+                      Integrated CCP softphone dialer with live transcripts, audio recordings, and one-click customer callbacks.
                     </p>
                   </div>
 
@@ -712,16 +876,7 @@ export default function Landing() {
                       3-Tier Multi-Level OEM Escalation
                     </h4>
                     <p className="text-neutral-400 text-xs mt-1">
-                      Automatic escalation ladder triggers if an issue nears SLA breach: Dealer &rarr; Regional Lead &rarr; OEM Quality VP.
-                    </p>
-                  </div>
-
-                  <div className="p-4 rounded-xl bg-[#141720]/80 border border-white/[0.04]">
-                    <h4 className="font-heading font-bold text-white text-sm uppercase">
-                      Live Bay &amp; Technician Allocation
-                    </h4>
-                    <p className="text-neutral-400 text-xs mt-1">
-                      Assign repair jobs to specialists, dispatch roadside units, and track team resolution metrics.
+                      Automated escalation prevents SLA breaches: Dealer foreman &rarr; Regional Service Lead &rarr; OEM Quality VP.
                     </p>
                   </div>
                 </div>
@@ -744,11 +899,11 @@ export default function Landing() {
         {/* Bottom Section Indicators */}
         <div className="relative z-10 flex items-end justify-between font-heading text-xs uppercase tracking-[0.2em] text-neutral-500 pt-12">
           <div className="flex items-center gap-3">
-            <span className="font-bold text-neutral-400">.04</span>
+            <span className="font-bold text-neutral-400">.05</span>
             <span className="hidden sm:inline text-[10px] tracking-[0.25em]">DUAL PORTALS</span>
           </div>
           <div
-            onClick={() => scrollTo("section-05")}
+            onClick={() => scrollTo("section-06")}
             className="cursor-pointer flex items-center gap-2 hover:text-neutral-300 transition-colors"
           >
             <span className="text-[10px]">SCROLL</span>
@@ -758,10 +913,10 @@ export default function Landing() {
       </section>
 
       {/* =========================================================================
-          SECTION .05 — REAL-WORLD SCENARIOS (WHEN YOU NEED AUTOCARE PULSE)
+          SECTION .06 — REAL-WORLD SCENARIOS (WHEN YOU NEED AUTOCARE PULSE)
           ========================================================================= */}
       <section
-        id="section-05"
+        id="section-06"
         className="relative min-h-screen flex flex-col justify-between px-6 md:px-14 py-24 border-b border-white/[0.05]"
       >
         <div className="relative z-10 max-w-6xl mx-auto w-full my-auto">
@@ -787,14 +942,14 @@ export default function Landing() {
                   SCENARIO 01 &bull; HIGH SEVERITY
                 </span>
                 <h3 className="font-heading font-bold text-xl uppercase tracking-wide text-white mt-2">
-                  Highway Breakdown or Flat Tyre
+                  Highway Breakdown (Stranded Car or Bike)
                 </h3>
                 <p className="mt-3 text-xs text-neutral-300 font-light leading-relaxed">
-                  You are stranded on the expressway with a blown tyre or sudden engine cutoff. You speak into your phone: <em>"Engine stalled on highway, won't turn over."</em>
+                  Stranded on the expressway with a blown tyre or sudden engine cutoff. You speak into your phone: <em>"Engine stalled on highway, won't turn over."</em>
                 </p>
                 <div className="mt-4 p-3 rounded-lg bg-[#141720] border border-white/[0.04] text-[11px] text-neutral-300 space-y-1">
                   <p className="text-[#00F0FF] font-medium">AutoCare Pulse Action:</p>
-                  <p>AI flags <span className="text-[#E63946] font-semibold">High Priority</span> &bull; Dealer dispatches roadside unit &bull; Live GPS map shows truck arriving in 22 mins.</p>
+                  <p>AI diagnoses non-drivable state &bull; Flags <span className="text-[#E63946] font-semibold">High Priority</span> &bull; Dispatches dealer rescue truck with live GPS arriving in 22 mins.</p>
                 </div>
               </div>
               <div className="mt-6 pt-4 border-t border-white/[0.06] text-[11px] font-mono text-neutral-400">
@@ -809,40 +964,40 @@ export default function Landing() {
                   SCENARIO 02 &bull; DIAGNOSTIC
                 </span>
                 <h3 className="font-heading font-bold text-xl uppercase tracking-wide text-white mt-2">
-                  Warning Light &amp; Strange Noise
+                  Warning Light &amp; Drivable Vehicle
                 </h3>
                 <p className="mt-3 text-xs text-neutral-300 font-light leading-relaxed">
                   Your ABS or Check Engine indicator lights up, accompanied by an unusual grinding brake noise. You record a voice note explaining the symptom.
                 </p>
                 <div className="mt-4 p-3 rounded-lg bg-[#141720] border border-white/[0.04] text-[11px] text-neutral-300 space-y-1">
                   <p className="text-[#00F0FF] font-medium">AutoCare Pulse Action:</p>
-                  <p>AI diagnoses brake rotor wear &bull; Suggests safe driving protocol &bull; Books an express workshop bay slot for tomorrow 10:00 AM.</p>
+                  <p>AI confirms car is safely drivable &bull; Suggests all nearby authorized service centers with live queue times &bull; Books express bay slot for tomorrow 10:00 AM.</p>
                 </div>
               </div>
               <div className="mt-6 pt-4 border-t border-white/[0.06] text-[11px] font-mono text-neutral-400">
-                Resolution: Express Workshop Bay Slot
+                Resolution: Nearby Service Center Bay Booking
               </div>
             </div>
 
             {/* Scenario 3 */}
-            <div className="rounded-2xl bg-[#0e1015] border border-white/[0.08] p-7 flex flex-col justify-between hover:border-white/20 transition-all">
+            <div className="rounded-2xl bg-[#0e1015] border border-white/[0.08] p-7 flex flex-col justify-between hover:border-[#E63946]/30 transition-all">
               <div>
-                <span className="font-heading text-[10px] font-bold tracking-[0.2em] uppercase text-neutral-400">
-                  SCENARIO 03 &bull; VISION AI
+                <span className="font-heading text-[10px] font-bold tracking-[0.2em] uppercase text-[#E63946]">
+                  SCENARIO 03 &bull; VIP PRIORITY TIER
                 </span>
                 <h3 className="font-heading font-bold text-xl uppercase tracking-wide text-white mt-2">
-                  Collision or Body Damage
+                  Priority Customer Damage Intake
                 </h3>
                 <p className="mt-3 text-xs text-neutral-300 font-light leading-relaxed">
-                  Minor parking collision leaves bumper and headlight damage. You snap two photos directly in the app.
+                  A subscribed Priority Member experiences bumper or panel damage in a parking scrape. They snap two photos directly in the app.
                 </p>
                 <div className="mt-4 p-3 rounded-lg bg-[#141720] border border-white/[0.04] text-[11px] text-neutral-300 space-y-1">
                   <p className="text-[#00F0FF] font-medium">AutoCare Pulse Action:</p>
-                  <p>AI vision analyzes dent and panel integrity &bull; Dealer parts specialist prepares replacement parts prior to vehicle arrival.</p>
+                  <p>Dealer console highlights <span className="text-[#E63946] font-semibold">Priority Customer Alert</span> &bull; Parts staged immediately &bull; Vehicle enters express bay ahead of queue.</p>
                 </div>
               </div>
               <div className="mt-6 pt-4 border-t border-white/[0.06] text-[11px] font-mono text-neutral-400">
-                Resolution: Pre-Assessed Body Repair
+                Resolution: Fast-Track VIP Workshop Repair
               </div>
             </div>
           </div>
@@ -851,11 +1006,11 @@ export default function Landing() {
         {/* Bottom Section Indicators */}
         <div className="relative z-10 flex items-end justify-between font-heading text-xs uppercase tracking-[0.2em] text-neutral-500 pt-12">
           <div className="flex items-center gap-3">
-            <span className="font-bold text-neutral-400">.05</span>
+            <span className="font-bold text-neutral-400">.06</span>
             <span className="hidden sm:inline text-[10px] tracking-[0.25em]">SCENARIOS</span>
           </div>
           <div
-            onClick={() => scrollTo("section-06")}
+            onClick={() => scrollTo("section-07")}
             className="cursor-pointer flex items-center gap-2 hover:text-neutral-300 transition-colors"
           >
             <span className="text-[10px]">SCROLL</span>
@@ -865,10 +1020,10 @@ export default function Landing() {
       </section>
 
       {/* =========================================================================
-          SECTION .06 — ACCESS & DIRECT PORTAL (Matching reference screen 3)
+          SECTION .07 — ACCESS & DIRECT PORTAL (Matching reference screen 3)
           ========================================================================= */}
       <section
-        id="section-06"
+        id="section-07"
         className="relative min-h-screen flex flex-col justify-between px-6 md:px-14 py-24"
       >
         <div className="relative z-10 max-w-6xl mx-auto w-full my-auto">
@@ -902,18 +1057,18 @@ export default function Landing() {
                     DIAGNOSTIC LATENCY
                   </p>
                   <p className="font-heading text-xl font-bold text-[#00F0FF] mt-1">
-                    &lt; 2.5s Triage
+                    &lt; 1.2s Triage
                   </p>
                   <p className="text-[11px] text-neutral-400 mt-0.5">Whisper + Vision GPT-5.4</p>
                 </div>
                 <div className="p-4 rounded-xl bg-[#0e1015] border border-white/[0.06]">
                   <p className="font-heading text-[10px] font-bold tracking-[0.2em] uppercase text-neutral-400">
-                    EMERGENCY SLA
+                    NATIONWIDE SCALE
                   </p>
                   <p className="font-heading text-xl font-bold text-[#E63946] mt-1">
-                    4-Hour Window
+                    Lakhs &amp; Crores
                   </p>
-                  <p className="text-[11px] text-neutral-400 mt-0.5">Multi-tier OEM escalation</p>
+                  <p className="text-[11px] text-neutral-400 mt-0.5">Distributed VIP telematics</p>
                 </div>
                 <div className="p-4 rounded-xl bg-[#0e1015] border border-white/[0.06]">
                   <p className="font-heading text-[10px] font-bold tracking-[0.2em] uppercase text-neutral-400">
@@ -926,12 +1081,12 @@ export default function Landing() {
                 </div>
                 <div className="p-4 rounded-xl bg-[#0e1015] border border-white/[0.06]">
                   <p className="font-heading text-[10px] font-bold tracking-[0.2em] uppercase text-neutral-400">
-                    CLOUD CONTACT
+                    EMERGENCY SLA
                   </p>
-                  <p className="font-heading text-xl font-bold text-[#00F0FF] mt-1">
-                    Amazon Connect
+                  <p className="font-heading text-xl font-bold text-[#E63946] mt-1">
+                    4-Hour Window
                   </p>
-                  <p className="text-[11px] text-neutral-400 mt-0.5">Softphone &amp; Call recording</p>
+                  <p className="text-[11px] text-neutral-400 mt-0.5">Priority fast-track &amp; escalation</p>
                 </div>
               </div>
 
@@ -1024,7 +1179,7 @@ export default function Landing() {
         {/* Bottom Section Indicators */}
         <div className="relative z-10 flex items-end justify-between font-heading text-xs uppercase tracking-[0.2em] text-neutral-500 pt-16">
           <div className="flex items-center gap-3">
-            <span className="font-bold text-neutral-400">.06</span>
+            <span className="font-bold text-neutral-400">.07</span>
             <span className="hidden sm:inline text-[10px] tracking-[0.25em]">COMMAND ACCESS</span>
           </div>
 
