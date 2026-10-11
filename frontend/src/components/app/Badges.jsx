@@ -2,16 +2,16 @@ import React from "react";
 
 const STATUS_MAP = {
   submitted: { label: "Submitted", cls: "bg-white/[0.04] text-neutral-400 border-white/10" },
-  ai_triaged: { label: "AI Triaged", cls: "bg-white/[0.08] text-white border-white/20" },
-  assigned: { label: "Assigned", cls: "bg-white/[0.06] text-neutral-200 border-white/15" },
-  in_progress: { label: "In Workshop", cls: "bg-white/[0.08] text-neutral-100 border-white/20" },
+  ai_triaged: { label: "AI Triaged", cls: "bg-[#00F0FF]/10 text-[#00F0FF] border-[#00F0FF]/30" },
+  assigned: { label: "Assigned", cls: "bg-white/[0.08] text-white border-white/20" },
+  in_progress: { label: "In Workshop", cls: "bg-[#00F0FF]/15 text-[#00F0FF] border-[#00F0FF]/35" },
   resolved: { label: "Resolved", cls: "bg-white/10 text-white border-white/25" },
 };
 
 const PRIORITY_MAP = {
-  High: "bg-white/[0.08] text-white border-white/20",
-  Medium: "bg-white/[0.05] text-neutral-300 border-white/15",
-  Low: "bg-white/[0.03] text-neutral-400 border-white/10",
+  High: "bg-[#E63946]/15 text-[#E63946] border-[#E63946]/40",
+  Medium: "bg-[#00F0FF]/10 text-[#00F0FF] border-[#00F0FF]/30",
+  Low: "bg-white/[0.04] text-neutral-400 border-white/10",
 };
 
 export const StatusBadge = ({ status, testid }) => {

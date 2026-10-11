@@ -77,10 +77,14 @@ export default function DealerConsole() {
         <div className="flex items-center gap-4">
           <div
             onClick={() => navigate("/")}
-            className="cursor-pointer flex flex-col font-heading font-black text-white text-base tracking-[0.2em] leading-none select-none hover:opacity-80 transition-opacity"
+            className="cursor-pointer flex items-center gap-3 select-none hover:opacity-90 transition-opacity"
           >
-            <span>AUTO</span>
-            <span className="text-neutral-400">CARE</span>
+            <div className="grid h-8 w-8 place-items-center rounded-xl bg-[#E63946] shadow-[0_0_15px_rgba(230,57,70,0.45)] shrink-0">
+              <Activity className="h-4 w-4 text-white" strokeWidth={2.5} />
+            </div>
+            <span className="font-heading font-black text-lg tracking-tight text-white uppercase">
+              AUTOCARE<span className="text-[#00F0FF]">PULSE</span>
+            </span>
           </div>
           <span className="h-4 w-px bg-white/10 hidden sm:block" />
           {dealer.dealership_name && (
