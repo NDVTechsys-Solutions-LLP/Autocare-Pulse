@@ -323,7 +323,7 @@ async def ai_classify(description: str, vehicle_model: str, image_b64: Optional[
         "\"summary\": concise, descriptive summary of the specific malfunction,\n"
         "\"is_solvable\": boolean (true if solvable via DIY/minor fix, false if must request professional service),\n"
         "\"solvability_label\": string (\"Solvable via DIY Fix\" or \"Service Required · Professional Attention Needed\"),\n"
-        "\"solution\": step-by-step resolution. If solvable, provide numbered DIY fix steps. If not solvable, explicitly say: \"⚠️ Not self-solvable. Request dealer workshop service or roadside assistance immediately.\" with reasons why.\n"
+        "\"solution\": step-by-step resolution. If solvable, provide numbered DIY fix steps. If not solvable, explicitly say: \"Not self-solvable. Request dealer workshop service or roadside assistance immediately.\" with reasons why.\n"
         "\"recommended_action\": formatted multi-line string for display on the customer dashboard and dealer console."
     )
     prompt = f"Vehicle: {vehicle_model}\nCustomer report: {description}"
@@ -354,11 +354,14 @@ async def ai_classify(description: str, vehicle_model: str, image_b64: Optional[
         solution = data.get("solution") or data.get("recommended_action") or ""
         rec_action = data.get("recommended_action") or solution
 
+        # Strip any legacy emoji markers
+        rec_action = rec_action.replace("🟢 ", "").replace("🔴 ", "").replace("⚠️ ", "").replace("💡 ", "")
+
         # Ensure recommended_action is clearly labeled if not already
-        if is_solvable and not rec_action.startswith("🟢"):
-            rec_action = f"🟢 SOLVABLE ISSUE (DIY FIX AVAILABLE):\n{rec_action}"
-        elif not is_solvable and not rec_action.startswith("🔴") and not rec_action.startswith("⚠️"):
-            rec_action = f"🔴 NOT SELF-SOLVABLE · REQUEST SERVICE REQUIRED:\n{rec_action}"
+        if is_solvable and not rec_action.startswith("DIY RESOLUTION"):
+            rec_action = f"DIY RESOLUTION DIRECTIVE:\n{rec_action}"
+        elif not is_solvable and not rec_action.startswith("WORKSHOP SERVICE") and not rec_action.startswith("CRITICAL SAFETY"):
+            rec_action = f"WORKSHOP SERVICE REQUIRED:\n{rec_action}"
 
         return {
             "category": data.get("category", "Other"),
@@ -384,8 +387,8 @@ async def ai_classify(description: str, vehicle_model: str, image_b64: Optional[
             "summary": description[:80],
             "is_solvable": is_solv,
             "solvability_label": "Solvable via DIY Fix" if is_solv else "Service Required · Professional Attention Needed",
-            "solution": "Inspect component according to user manual." if is_solv else "⚠️ Critical safety hazard. Do not operate vehicle. Request professional service immediately.",
-            "recommended_action": "🟢 Solvable via DIY Fix:\nInspect and adjust component according to owner manual." if is_solv else "🔴 Service Required:\nDo not drive. Request authorized dealer service or roadside recovery.",
+            "solution": "Inspect component according to user manual." if is_solv else "Critical safety hazard. Do not operate vehicle. Request professional service immediately.",
+            "recommended_action": "DIY RESOLUTION DIRECTIVE:\nInspect and adjust component according to owner manual." if is_solv else "WORKSHOP SERVICE REQUIRED:\nDo not drive. Request authorized dealer service or roadside recovery.",
             "ai_error": True
         }
 
@@ -539,7 +542,7 @@ def haversine(lat1, lng1, lat2, lng2):
 
 
 @api_router.get("/dealerships")
-async def list_dealerships(lat: Optional[float] = None, lng: Optional[float] = None, user=Depends(get_current_user)):
+async def list_dealerships(lat: Optional[float] = None, lng: Optional[float] = None):
     ds = await db.dealerships.find({}, {"_id": 0}).to_list(100)
     for d in ds:
         if lat is not None and lng is not None and d.get("lat") is not None:
@@ -706,14 +709,22 @@ def with_sla_flags(docs):
 
 
 @api_router.get("/dealer/incidents")
-async def dealer_incidents(dealer=Depends(get_current_dealer)):
-    docs = await db.incidents.find({"dealership_id": dealer.get("dealership_id")}, {"_id": 0}).sort("created_at", -1).to_list(1000)
+async def dealer_incidents(dealership_id: Optional[str] = None, dealer=Depends(get_current_dealer)):
+    query = {}
+    if dealership_id and dealership_id != "all":
+        query["dealership_id"] = dealership_id
+    elif dealer.get("role") != "manager" and dealer.get("email") != "ndvtechsys.solutions@gmail.com":
+        query["dealership_id"] = dealer.get("dealership_id")
+    docs = await db.incidents.find(query, {"_id": 0}).sort("created_at", -1).to_list(1000)
     return with_sla_flags(docs)
 
 
 @api_router.get("/dealer/team")
-async def dealer_team(dealer=Depends(get_current_dealer)):
-    techs = await db.dealers.find({"role": "technician", "dealership_id": dealer.get("dealership_id")}, {"_id": 0, "password_hash": 0}).to_list(100)
+async def dealer_team(dealership_id: Optional[str] = None, dealer=Depends(get_current_dealer)):
+    query = {"role": "technician"}
+    if dealership_id and dealership_id != "all":
+        query["dealership_id"] = dealership_id
+    techs = await db.dealers.find(query, {"_id": 0, "password_hash": 0}).to_list(100)
     return techs
 
 
@@ -847,8 +858,13 @@ async def dispatch(inc_id: str, body: dict, background_tasks: BackgroundTasks, d
 
 # ---------------- KPIs ----------------
 @api_router.get("/dealer/kpis")
-async def kpis(dealer=Depends(get_current_dealer)):
-    docs = with_sla_flags(await db.incidents.find({"dealership_id": dealer.get("dealership_id")}, {"_id": 0}).to_list(2000))
+async def kpis(dealership_id: Optional[str] = None, dealer=Depends(get_current_dealer)):
+    query = {}
+    if dealership_id and dealership_id != "all":
+        query["dealership_id"] = dealership_id
+    elif dealer.get("role") != "manager" and dealer.get("email") != "ndvtechsys.solutions@gmail.com":
+        query["dealership_id"] = dealer.get("dealership_id")
+    docs = with_sla_flags(await db.incidents.find(query, {"_id": 0}).to_list(2000))
     total = len(docs)
     open_ = [d for d in docs if d["status"] != "resolved"]
     resolved = [d for d in docs if d["status"] == "resolved"]
@@ -942,8 +958,12 @@ async def connect_status(dealer=Depends(get_current_dealer)):
         except Exception as e:
             logger.error(f"Connect metrics failed: {e}")
         return {"mode": "live", "instance_id": os.environ.get("AWS_CONNECT_INSTANCE_ID", ""), "source_phone": os.environ.get("AWS_CONNECT_SOURCE_PHONE", ""), "ccp_url": os.environ.get("AWS_CONNECT_CCP_URL", ""), "calls": calls, "metrics": metrics}
-    open_count = await db.incidents.count_documents({"status": {"$ne": "resolved"}, "dealership_id": dealer.get("dealership_id")})
-    tech_count = await db.dealers.count_documents({"role": "technician", "dealership_id": dealer.get("dealership_id")})
+    d_id = dealer.get("dealership_id")
+    is_master = dealer.get("role") == "manager" or dealer.get("email") == "ndvtechsys.solutions@gmail.com"
+    inc_q = {"status": {"$ne": "resolved"}} if is_master else {"status": {"$ne": "resolved"}, "dealership_id": d_id}
+    tech_q = {"role": "technician"} if is_master else {"role": "technician", "dealership_id": d_id}
+    open_count = await db.incidents.count_documents(inc_q)
+    tech_count = await db.dealers.count_documents(tech_q)
     metrics = {"AGENTS_ONLINE": tech_count, "AGENTS_AVAILABLE": max(tech_count - 1, 0), "CONTACTS_IN_QUEUE": open_count, "OLDEST_CONTACT_AGE": 0}
     return {"mode": "simulation", "instance_id": "", "source_phone": "", "ccp_url": "", "calls": calls, "metrics": metrics}
 
@@ -1277,8 +1297,13 @@ async def customer_callbacks(inc_id: str, user=Depends(get_current_user)):
 
 
 @api_router.get("/dealer/callbacks")
-async def dealer_callbacks(dealer=Depends(get_current_dealer)):
-    return await db.callbacks.find({"dealership_id": dealer.get("dealership_id")}, {"_id": 0}).sort("created_at", -1).to_list(200)
+async def dealer_callbacks(dealership_id: Optional[str] = None, dealer=Depends(get_current_dealer)):
+    query = {}
+    if dealership_id and dealership_id != "all":
+        query["dealership_id"] = dealership_id
+    elif dealer.get("role") != "manager" and dealer.get("email") != "ndvtechsys.solutions@gmail.com":
+        query["dealership_id"] = dealer.get("dealership_id")
+    return await db.callbacks.find(query, {"_id": 0}).sort("created_at", -1).to_list(200)
 
 
 @api_router.post("/dealer/callbacks/{cb_id}/place")

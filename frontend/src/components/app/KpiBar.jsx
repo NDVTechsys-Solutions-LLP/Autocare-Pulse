@@ -37,9 +37,9 @@ export default function KpiBar({ kpis }) {
       label: "Dealer CSAT",
       value: `${kpis.csat}%`,
       sub: `${kpis.escalations_active} active escalations`,
-      color: "text-emerald-400",
-      border: "border-white/[0.08] hover:border-emerald-500/40",
-      iconBg: "bg-emerald-500/10 text-emerald-400",
+      color: "text-white",
+      border: "border-white/[0.08] hover:border-[#00F0FF]/40",
+      iconBg: "bg-[#00F0FF]/10 text-[#00F0FF]",
     },
   ];
 

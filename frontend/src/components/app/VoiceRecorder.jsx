@@ -228,8 +228,8 @@ export default function VoiceRecorder({ onTranscript }) {
         )}
 
         {lastTranscribed && !recording && !processing && (
-          <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-left animate-in fade-in">
-            <div className="flex items-center gap-1.5 text-emerald-400 font-mono text-[10px] uppercase tracking-wider font-bold mb-1">
+          <div className="rounded-xl border border-[#00F0FF]/30 bg-[#00F0FF]/5 p-3 text-left animate-in fade-in">
+            <div className="flex items-center gap-1.5 text-[#00F0FF] font-mono text-[10px] uppercase tracking-wider font-bold mb-1">
               <CheckCircle2 className="h-3.5 w-3.5" />
               <span>Transcribed Speech Added:</span>
             </div>

@@ -28,25 +28,33 @@ export default function DealerConsole() {
   const [team, setTeam] = useState([]);
   const [kpis, setKpis] = useState(null);
   const [connect, setConnect] = useState(null);
+  const [dealerships, setDealerships] = useState([]);
   const [filter, setFilter] = useState("all");
+  const [branchFilter, setBranchFilter] = useState("all");
   const [selected, setSelected] = useState(null);
 
   const load = useCallback(async () => {
     try {
-      const [inc, tm, kp, cn] = await Promise.all([
-        api.get("/dealer/incidents", dealerCfg()),
-        api.get("/dealer/team", dealerCfg()),
-        api.get("/dealer/kpis", dealerCfg()),
+      const params = branchFilter !== "all" ? { dealership_id: branchFilter } : {};
+      const [inc, tm, kp, cn, ds] = await Promise.all([
+        api.get("/dealer/incidents", { ...dealerCfg(), params }),
+        api.get("/dealer/team", { ...dealerCfg(), params }),
+        api.get("/dealer/kpis", { ...dealerCfg(), params }),
         api.get("/dealer/connect/status", dealerCfg()),
+        api.get("/dealerships").catch(() => ({ data: [] })),
       ]);
-      setIncidents(inc.data); setTeam(tm.data); setKpis(kp.data); setConnect(cn.data);
+      setIncidents(inc.data);
+      setTeam(tm.data);
+      setKpis(kp.data);
+      setConnect(cn.data);
+      if (ds?.data?.length) setDealerships(ds.data);
       if (selected) setSelected(inc.data.find((i) => i.id === selected.id) || null);
     } catch (e) {
       if (e.response?.status === 401) { localStorage.removeItem("dealer_token"); navigate("/"); }
     }
-  }, [navigate, selected]);
+  }, [navigate, selected, branchFilter]);
 
-  useEffect(() => { load(); const t = setInterval(load, 7000); return () => clearInterval(t); }, []); // eslint-disable-line
+  useEffect(() => { load(); const t = setInterval(load, 7000); return () => clearInterval(t); }, [load]);
 
   const logout = () => { localStorage.removeItem("dealer_token"); localStorage.removeItem("dealer_info"); navigate("/"); };
 
@@ -129,19 +137,40 @@ export default function DealerConsole() {
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
-            <span className="font-mono text-xs text-neutral-400 uppercase tracking-wider">Priority:</span>
-            <Select value={filter} onValueChange={setFilter}>
-              <SelectTrigger data-testid="priority-filter" className="w-44 bg-[#141720] border-white/10 text-white rounded-xl text-xs font-heading font-semibold uppercase tracking-wider h-10">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-[#0e1015] border border-white/10 text-white rounded-xl">
-                <SelectItem value="all" className="text-xs font-heading uppercase tracking-wider text-neutral-300 focus:bg-white/10 focus:text-white cursor-pointer">All Priorities</SelectItem>
-                <SelectItem value="High" className="text-xs font-heading uppercase tracking-wider text-[#E63946] focus:bg-white/10 focus:text-[#E63946] cursor-pointer">High Priority</SelectItem>
-                <SelectItem value="Medium" className="text-xs font-heading uppercase tracking-wider text-amber-400 focus:bg-white/10 focus:text-amber-400 cursor-pointer">Medium Priority</SelectItem>
-                <SelectItem value="Low" className="text-xs font-heading uppercase tracking-wider text-emerald-400 focus:bg-white/10 focus:text-emerald-400 cursor-pointer">Low Priority</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-xs text-neutral-400 uppercase tracking-wider">Workshop:</span>
+              <Select value={branchFilter} onValueChange={setBranchFilter}>
+                <SelectTrigger data-testid="branch-filter" className="w-56 bg-[#141720] border-white/10 text-white rounded-xl text-xs font-heading font-semibold uppercase tracking-wider h-10">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-[#0e1015] border border-white/10 text-white rounded-xl">
+                  <SelectItem value="all" className="text-xs font-heading uppercase tracking-wider text-neutral-300 focus:bg-white/10 focus:text-white cursor-pointer">
+                    All Workshops (Network-Wide)
+                  </SelectItem>
+                  {dealerships.map((d) => (
+                    <SelectItem key={d.id} value={d.id} className="text-xs font-heading uppercase tracking-wider text-neutral-300 focus:bg-white/10 focus:text-white cursor-pointer">
+                      {d.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-xs text-neutral-400 uppercase tracking-wider">Priority:</span>
+              <Select value={filter} onValueChange={setFilter}>
+                <SelectTrigger data-testid="priority-filter" className="w-40 bg-[#141720] border-white/10 text-white rounded-xl text-xs font-heading font-semibold uppercase tracking-wider h-10">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-[#0e1015] border border-white/10 text-white rounded-xl">
+                  <SelectItem value="all" className="text-xs font-heading uppercase tracking-wider text-white focus:bg-white/10 focus:text-white cursor-pointer">All Priorities</SelectItem>
+                  <SelectItem value="High" className="text-xs font-heading uppercase tracking-wider text-[#E63946] focus:bg-white/10 focus:text-[#E63946] cursor-pointer">High Priority</SelectItem>
+                  <SelectItem value="Medium" className="text-xs font-heading uppercase tracking-wider text-[#00F0FF] focus:bg-white/10 focus:text-[#00F0FF] cursor-pointer">Medium Priority</SelectItem>
+                  <SelectItem value="Low" className="text-xs font-heading uppercase tracking-wider text-neutral-400 focus:bg-white/10 focus:text-white cursor-pointer">Low Priority</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
 
@@ -216,6 +245,9 @@ export default function DealerConsole() {
                         )}
                         <span className="rounded bg-white/[0.06] border border-white/[0.06] px-2 py-0.5 font-mono text-[10px] uppercase tracking-widest text-neutral-300">
                           {inc.category}
+                        </span>
+                        <span className="rounded bg-[#00F0FF]/10 border border-[#00F0FF]/25 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-[#00F0FF]">
+                          {inc.dealership_name || "AutoCare Workshop"}
                         </span>
                       </div>
                       <StatusBadge status={inc.status} testid={`q-status-${inc.id}`} />
@@ -338,7 +370,7 @@ function KpiCharts({ kpis, incidents }) {
           ))}
         </div>
         {breached.length === 0 ? (
-          <p className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-xs font-mono text-emerald-400">
+          <p className="rounded-xl border border-[#00F0FF]/30 bg-[#00F0FF]/5 p-4 text-xs font-mono text-[#00F0FF]">
             All incidents within SLA. No active escalations required.
           </p>
         ) : (
@@ -413,13 +445,13 @@ function DealerDetail({ incident, team, onClose, onUpdate, onEscalate, onChat, o
                 </p>
                 {incident.is_solvable !== undefined && (
                   <span
-                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-heading font-semibold uppercase tracking-wider ${
+                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-heading font-semibold uppercase tracking-wider ${
                       incident.is_solvable
-                        ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                        ? "bg-[#00F0FF]/15 text-[#00F0FF] border border-[#00F0FF]/30"
                         : "bg-[#E63946]/15 text-[#E63946] border border-[#E63946]/30"
                     }`}
                   >
-                    {incident.is_solvable ? "🟢 Solvable (DIY Fix)" : "🔴 Service Required"}
+                    {incident.is_solvable ? "SOLVABLE · DIY RESOLUTION" : "DEALER INTAKE REQUIRED"}
                   </span>
                 )}
               </div>
@@ -445,7 +477,7 @@ function DealerDetail({ incident, team, onClose, onUpdate, onEscalate, onChat, o
               </div>
             )}
             {incident.rsa && (
-              <p className="mb-3 text-xs font-mono text-emerald-400">
+              <p className="mb-3 text-xs font-mono text-[#00F0FF]">
                 RSA Unit Active · {incident.rsa.unit} · ETA {incident.rsa.eta_min} min
               </p>
             )}
@@ -544,7 +576,7 @@ function DealerDetail({ incident, team, onClose, onUpdate, onEscalate, onChat, o
               <Button
                 data-testid="resolve-btn"
                 onClick={() => onUpdate(incident.id, { status: "resolved", note: "Marked resolved by dealer" })}
-                className="flex-1 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-heading font-bold text-xs uppercase tracking-wider"
+                className="flex-1 rounded-full bg-white hover:bg-neutral-200 text-black font-heading font-bold text-xs uppercase tracking-wider shadow-lg shadow-white/10"
               >
                 Mark Resolved
               </Button>

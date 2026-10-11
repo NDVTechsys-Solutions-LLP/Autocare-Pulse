@@ -57,8 +57,8 @@ export default function ConnectCCP({ status, onCall, incidentId }) {
           data-testid="connect-mode"
           className={`rounded-full px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-wider font-semibold ${
             live
-              ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
-              : "bg-amber-500/15 text-amber-400 border border-amber-500/30"
+              ? "bg-[#00F0FF]/15 text-[#00F0FF] border border-[#00F0FF]/30"
+              : "bg-white/[0.08] text-neutral-300 border border-white/15"
           }`}
         >
           {live ? "Live · AWS" : "Simulation"}
@@ -115,7 +115,7 @@ export default function ConnectCCP({ status, onCall, incidentId }) {
             data-testid="connect-place-call"
             onClick={placeCall}
             disabled={dialing}
-            className="flex-1 rounded-full bg-emerald-600 hover:bg-emerald-500 font-heading text-xs font-bold uppercase tracking-wider text-white shadow-lg shadow-emerald-950/40"
+            className="flex-1 rounded-full bg-white hover:bg-neutral-200 font-heading text-xs font-bold uppercase tracking-wider text-black shadow-lg shadow-white/10"
           >
             <Phone className="mr-2 h-4 w-4" /> {dialing ? "Dialing…" : live ? "Call via Connect" : "Place Call"}
           </Button>

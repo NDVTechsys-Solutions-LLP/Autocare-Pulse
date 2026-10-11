@@ -45,12 +45,12 @@ export default function CallbacksPanel() {
                 data-testid={`callback-place-${c.id}`}
                 onClick={() => place(c.id)}
                 size="sm"
-                className="rounded-full bg-emerald-600 hover:bg-emerald-500 font-heading text-xs font-bold uppercase tracking-wider text-white shadow-lg shadow-emerald-950/40"
+                className="rounded-full bg-white hover:bg-neutral-200 font-heading text-xs font-bold uppercase tracking-wider text-black shadow-lg shadow-white/10"
               >
                 Place Call
               </Button>
             ) : (
-              <span className="rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-0.5 font-mono text-[10px] uppercase text-emerald-400">
+              <span className="rounded-full bg-[#00F0FF]/15 border border-[#00F0FF]/30 px-2.5 py-0.5 font-mono text-[10px] uppercase text-[#00F0FF]">
                 {c.status}
               </span>
             )}

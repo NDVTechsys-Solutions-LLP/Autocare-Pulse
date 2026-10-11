@@ -591,11 +591,11 @@ function DetailDialog({ incident, onClose }) {
                   <span
                     className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-heading font-semibold uppercase tracking-wider ${
                       incident.is_solvable
-                        ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                        ? "bg-[#00F0FF]/15 text-[#00F0FF] border border-[#00F0FF]/30"
                         : "bg-[#E63946]/15 text-[#E63946] border border-[#E63946]/30"
                     }`}
                   >
-                    {incident.is_solvable ? "🟢 Solvable Issue (DIY Fix Available)" : "🔴 Service Required · Request Workshop"}
+                    {incident.is_solvable ? "SOLVABLE · DIY RESOLUTION" : "DEALER INTAKE REQUIRED"}
                   </span>
                 )}
               </div>

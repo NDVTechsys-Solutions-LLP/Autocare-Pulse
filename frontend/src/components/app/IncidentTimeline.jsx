@@ -21,10 +21,28 @@ export default function IncidentTimeline({ incident }) {
           return (
             <React.Fragment key={step.key}>
               <div className="flex flex-col items-center gap-1.5" data-testid={`step-${step.key}`}>
-                {done ? <CheckCircle2 className="h-6 w-6 text-emerald-400" /> : active ? <Clock className="h-6 w-6 text-accent" /> : <Circle className="h-6 w-6 text-muted-foreground/40" />}
-                <span className={`text-[10px] font-mono uppercase tracking-wider ${active ? "text-accent" : done ? "text-emerald-400" : "text-muted-foreground/50"}`}>{step.label}</span>
+                {done ? (
+                  <CheckCircle2 className="h-5 w-5 text-[#00F0FF]" />
+                ) : active ? (
+                  <Clock className="h-5 w-5 text-white animate-pulse" />
+                ) : (
+                  <Circle className="h-5 w-5 text-neutral-600" />
+                )}
+                <span
+                  className={`text-[10px] font-mono uppercase tracking-wider ${
+                    active ? "text-white font-bold" : done ? "text-[#00F0FF]" : "text-neutral-500"
+                  }`}
+                >
+                  {step.label}
+                </span>
               </div>
-              {i < STEPS.length - 1 && <div className={`h-0.5 flex-1 ${i < currentIdx ? "bg-emerald-400/50" : "bg-border"}`} />}
+              {i < STEPS.length - 1 && (
+                <div
+                  className={`h-0.5 flex-1 transition-colors ${
+                    i < currentIdx ? "bg-[#00F0FF]/60" : "bg-white/10"
+                  }`}
+                />
+              )}
             </React.Fragment>
           );
         })}

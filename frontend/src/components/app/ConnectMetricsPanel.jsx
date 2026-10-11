@@ -50,8 +50,8 @@ export default function ConnectMetricsPanel() {
           data-testid="connect-metrics-mode"
           className={`rounded-full px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-wider font-semibold ${
             data.mode === "live"
-              ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
-              : "bg-amber-500/15 text-amber-400 border border-amber-500/30"
+              ? "bg-[#00F0FF]/15 text-[#00F0FF] border border-[#00F0FF]/30"
+              : "bg-white/[0.08] text-neutral-300 border border-white/15"
           }`}
         >
           {data.mode === "live" ? "Live · AWS" : "Simulation"}
