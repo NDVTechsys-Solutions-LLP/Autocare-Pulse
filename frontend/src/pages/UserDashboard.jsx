@@ -15,6 +15,7 @@ import {
   ArrowUpRight,
   Shield,
   Activity,
+  ArrowLeft,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,6 +50,7 @@ export default function UserDashboard() {
     try {
       const res = await api.get("/incidents");
       setIncidents(res.data);
+      setSelected((prev) => (prev ? res.data.find((i) => i.id === prev.id) || prev : null));
     } finally {
       setLoading(false);
     }
@@ -537,10 +539,19 @@ function DetailDialog({ incident, onClose }) {
   if (!incident) return null;
 
   return (
-    <Dialog open={!!incident} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto border-white/10 bg-[#0e1015] text-white sm:max-w-lg p-8 rounded-2xl shadow-2xl">
-        <DialogHeader>
-          <div className="flex items-center justify-between">
+    <Dialog open={!!incident} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-h-[90vh] overflow-y-auto border-white/10 bg-[#0e1015] text-white sm:max-w-lg p-6 sm:p-8 rounded-2xl shadow-2xl">
+        <DialogHeader className="space-y-3">
+          <div className="flex items-center justify-between pb-2 border-b border-white/[0.08] pr-8">
+            <button
+              type="button"
+              data-testid="detail-back-top-btn"
+              onClick={onClose}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/15 bg-white/[0.06] hover:bg-white/15 text-xs font-heading font-bold uppercase tracking-wider text-white transition-colors cursor-pointer"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              <span>Back to Incidents</span>
+            </button>
             <span className="font-mono text-xs font-semibold text-neutral-400 tracking-wider">
               {incident.id}
             </span>
@@ -707,6 +718,19 @@ function DetailDialog({ incident, onClose }) {
 
           {/* Chat Thread */}
           <ChatThread incidentId={incident.id} role="customer" />
+
+          <div className="pt-4 border-t border-white/[0.08] flex justify-end">
+            <Button
+              type="button"
+              data-testid="detail-back-bottom-btn"
+              onClick={onClose}
+              variant="outline"
+              className="w-full sm:w-auto rounded-full border border-white/20 bg-white/[0.04] text-white hover:bg-white/10 text-xs font-heading font-semibold uppercase tracking-wider px-6 py-2.5 cursor-pointer"
+            >
+              <ArrowLeft className="mr-2 h-3.5 w-3.5" />
+              Close &amp; Return to Dashboard
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
