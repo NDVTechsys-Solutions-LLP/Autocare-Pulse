@@ -406,11 +406,24 @@ function DealerDetail({ incident, team, onClose, onUpdate, onEscalate, onChat, o
           )}
 
           {incident.recommended_action && (
-            <div className="rounded-xl border border-[#00F0FF]/30 bg-[#00F0FF]/5 p-4">
-              <p className="font-heading text-[10px] font-bold uppercase tracking-[0.2em] text-[#00F0FF]">
-                AI Diagnostic Directive
-              </p>
-              <p className="mt-1 text-xs text-neutral-200 font-light leading-relaxed whitespace-pre-line">
+            <div className="rounded-xl border border-[#00F0FF]/30 bg-[#00F0FF]/5 p-4 space-y-2">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <p className="font-heading text-[10px] font-bold uppercase tracking-[0.2em] text-[#00F0FF]">
+                  AI Diagnostic Directive
+                </p>
+                {incident.is_solvable !== undefined && (
+                  <span
+                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-heading font-semibold uppercase tracking-wider ${
+                      incident.is_solvable
+                        ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                        : "bg-[#E63946]/15 text-[#E63946] border border-[#E63946]/30"
+                    }`}
+                  >
+                    {incident.is_solvable ? "🟢 Solvable (DIY Fix)" : "🔴 Service Required"}
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-neutral-200 font-light leading-relaxed whitespace-pre-line">
                 {incident.recommended_action}
               </p>
             </div>

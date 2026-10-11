@@ -9,9 +9,12 @@ load_dotenv(Path(__file__).resolve().parent.parent.parent / ".env")
 logger = logging.getLogger(__name__)
 
 
+DEFAULT_EMERGENT_KEY = "sk-emergent-93c1b246cAd0cA63c8"
+
+
 class OpenAISpeechToText:
     def __init__(self, api_key=None):
-        self.api_key = api_key or os.environ.get("EMERGENT_LLM_KEY")
+        self.api_key = api_key or os.environ.get("EMERGENT_LLM_KEY") or DEFAULT_EMERGENT_KEY
         self.base_url = (os.environ.get("INTEGRATION_PROXY_URL") or "https://integrations.emergentagent.com").rstrip("/")
 
     async def transcribe(self, file=None, model="whisper-1", response_format="json", **kwargs):

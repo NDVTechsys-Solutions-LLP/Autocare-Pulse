@@ -36,7 +36,8 @@ mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
-EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY")
+DEFAULT_EMERGENT_KEY = "sk-emergent-93c1b246cAd0cA63c8"
+EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY") or DEFAULT_EMERGENT_KEY
 JWT_SECRET = os.environ.get("JWT_SECRET", "dev_secret")
 
 # Object storage config
@@ -310,24 +311,26 @@ async def get_current_dealer(authorization: Optional[str] = Header(None)):
 # ---------------- AI ----------------
 async def ai_classify(description: str, vehicle_model: str, image_b64: Optional[str] = None):
     system = (
-        "You are an expert Chief Automotive Diagnostic Technician and Service Director. "
-        "Analyze the customer's reported vehicle malfunction. Provide deep, technical triage customized specifically to the vehicle make/model and reported symptoms. "
-        "DO NOT use generic repetitive boilerplates like 'Perform diagnostic scan' or 'Inspect system for wear'. "
-        "Return ONLY a valid minified JSON object with the following keys:\n"
-        "category: one of [Engine, Brakes, Electrical, Battery, Transmission, Tyres, Suspension, Body, Locks, Cooling, Other],\n"
-        "severity: integer 1 to 5 (5 is critical safety hazard/drivability loss),\n"
-        "priority: 'High' (safety hazard/non-drivable), 'Medium' (drivable with caution), or 'Low' (minor/cosmetic),\n"
-        "summary: concise, descriptive summary of the specific mechanical/electrical failure,\n"
-        "root_cause: specific technical component failure hypothesis,\n"
-        "technician_directive: concrete step-by-step workshop inspection and diagnostic procedures,\n"
-        "customer_advice: clear practical guidance for the driver (whether safe to drive or stop),\n"
-        "recommended_action: a comprehensive formatted directive string combining root cause, technician steps, and driver guidance."
+        "You are an expert Chief Automotive Diagnostic & Resolution AI for car and two-wheeler dealerships. "
+        "Analyze the customer's vehicle malfunction. Your core task is to determine whether the issue is:\n"
+        "1) A SOLVABLE / DIY ISSUE: Can be safely checked, adjusted, or resolved by the customer/driver with basic DIY steps (e.g. wiper cleaning/linkage, tire pressure inflation/checking, door lock lubrication, key fob battery replacement, fuse replacement, fluid top-up, loose gas cap tightening).\n"
+        "OR\n"
+        "2) AN UNSOLVABLE / HAZARDOUS ISSUE: Cannot and should NOT be solved by DIY. Requires professional workshop tools, lift, parts replacement, or towing (e.g. brake failure/leak, engine knocking/overheating/smoke, transmission failure, steering binding, suspension break, high-voltage EV fault). It MUST instruct the customer to REQUEST SERVICE.\n\n"
+        "Return ONLY a valid minified JSON object with the keys:\n"
+        "\"category\": one of [Brakes, Engine, Tyres, Wipers, Locks, Battery, Electrical, Transmission, Suspension, Body, Cooling, Other],\n"
+        "\"severity\": integer 1 to 5 (5 is critical safety hazard/drivability loss),\n"
+        "\"priority\": \"High\" (safety hazard/non-drivable), \"Medium\" (drivable with caution), or \"Low\" (minor/cosmetic),\n"
+        "\"summary\": concise, descriptive summary of the specific malfunction,\n"
+        "\"is_solvable\": boolean (true if solvable via DIY/minor fix, false if must request professional service),\n"
+        "\"solvability_label\": string (\"Solvable via DIY Fix\" or \"Service Required · Professional Attention Needed\"),\n"
+        "\"solution\": step-by-step resolution. If solvable, provide numbered DIY fix steps. If not solvable, explicitly say: \"⚠️ Not self-solvable. Request dealer workshop service or roadside assistance immediately.\" with reasons why.\n"
+        "\"recommended_action\": formatted multi-line string for display on the customer dashboard and dealer console."
     )
     prompt = f"Vehicle: {vehicle_model}\nCustomer report: {description}"
     if image_b64:
         prompt += "\nAn image of the vehicle issue is attached. Factor visible damage into the assessment."
     try:
-        api_key = EMERGENT_LLM_KEY or os.environ.get("EMERGENT_LLM_KEY")
+        api_key = EMERGENT_LLM_KEY or os.environ.get("EMERGENT_LLM_KEY") or DEFAULT_EMERGENT_KEY
         chat = LlmChat(api_key=api_key, session_id=f"triage-{uuid.uuid4().hex[:8]}", system_message=system).with_model("openai", "gpt-5.4")
         if image_b64:
             msg = UserMessage(text=prompt, file_contents=[ImageContent(image_base64=image_b64)])
@@ -345,34 +348,44 @@ async def ai_classify(description: str, vehicle_model: str, image_b64: Optional[
         prio = data.get("priority", "Medium")
         if prio not in PRIORITY_SLA:
             prio = "Medium"
-        
-        # Build comprehensive recommended action if not already rich
-        rec_action = data.get("recommended_action") or ""
-        root_cause = data.get("root_cause") or ""
-        directive = data.get("technician_directive") or ""
-        advice = data.get("customer_advice") or ""
-        if root_cause and directive:
-            rec_action = f"Probable Cause: {root_cause}\n\nWorkshop Directive: {directive}\n\nDriver Advisory: {advice}"
+
+        is_solvable = bool(data.get("is_solvable", False))
+        solvability_label = data.get("solvability_label") or ("Solvable via DIY Fix" if is_solvable else "Service Required · Professional Attention Needed")
+        solution = data.get("solution") or data.get("recommended_action") or ""
+        rec_action = data.get("recommended_action") or solution
+
+        # Ensure recommended_action is clearly labeled if not already
+        if is_solvable and not rec_action.startswith("🟢"):
+            rec_action = f"🟢 SOLVABLE ISSUE (DIY FIX AVAILABLE):\n{rec_action}"
+        elif not is_solvable and not rec_action.startswith("🔴") and not rec_action.startswith("⚠️"):
+            rec_action = f"🔴 NOT SELF-SOLVABLE · REQUEST SERVICE REQUIRED:\n{rec_action}"
 
         return {
             "category": data.get("category", "Other"),
             "severity": int(data.get("severity", 3)),
             "priority": prio,
             "summary": data.get("summary", description[:80]),
-            "root_cause": root_cause,
-            "technician_directive": directive,
-            "customer_advice": advice,
-            "recommended_action": rec_action or directive or "Inspect system according to OEM service manual.",
+            "is_solvable": is_solvable,
+            "solvability_label": solvability_label,
+            "solution": solution,
+            "recommended_action": rec_action,
         }
     except Exception as e:
         logger.error(f"AI classify failed: {e}")
+        # Intelligent fallback
+        low = description.lower()
+        is_solv = any(w in low for w in ["wiper", "blade", "lock", "latch", "tire", "tyre", "fob", "battery"])
+        if any(w in low for w in ["brake", "breaks", "knock", "smoke", "overheat"]):
+            is_solv = False
         return {
             "category": "Other",
             "severity": 3,
-            "priority": "Medium",
+            "priority": "High" if not is_solv else "Medium",
             "summary": description[:80],
-            "root_cause": "System requires technician acoustic and physical diagnosis.",
-            "recommended_action": f"Physical technician assessment needed for {vehicle_model}: verify {description[:60]}.",
+            "is_solvable": is_solv,
+            "solvability_label": "Solvable via DIY Fix" if is_solv else "Service Required · Professional Attention Needed",
+            "solution": "Inspect component according to user manual." if is_solv else "⚠️ Critical safety hazard. Do not operate vehicle. Request professional service immediately.",
+            "recommended_action": "🟢 Solvable via DIY Fix:\nInspect and adjust component according to owner manual." if is_solv else "🔴 Service Required:\nDo not drive. Request authorized dealer service or roadside recovery.",
             "ai_error": True
         }
 
@@ -581,9 +594,9 @@ async def build_incident(user, payload: IncidentCreate, image_b64=None):
         "severity": ai["severity"],
         "priority": ai["priority"],
         "ai_summary": ai["summary"],
-        "root_cause": ai.get("root_cause", ""),
-        "technician_directive": ai.get("technician_directive", ""),
-        "customer_advice": ai.get("customer_advice", ""),
+        "is_solvable": ai.get("is_solvable", False),
+        "solvability_label": ai.get("solvability_label", ""),
+        "solution": ai.get("solution", ""),
         "recommended_action": ai["recommended_action"],
         "ai_error": ai.get("ai_error", False),
         "status": "ai_triaged",
