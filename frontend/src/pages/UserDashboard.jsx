@@ -1,12 +1,31 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Activity, LogOut, Plus, Mic, Camera, Car, X, Sparkles, Upload, PhoneCall, MapPin, Star } from "lucide-react";
+import {
+  LogOut,
+  Plus,
+  Mic,
+  Camera,
+  Car,
+  Sparkles,
+  Upload,
+  PhoneCall,
+  MapPin,
+  Star,
+  ArrowUpRight,
+  Shield,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
@@ -34,66 +53,159 @@ export default function UserDashboard() {
     }
   }, []);
 
-  useEffect(() => { load(); const t = setInterval(load, 8000); return () => clearInterval(t); }, [load]);
+  useEffect(() => {
+    load();
+    const t = setInterval(load, 8000);
+    return () => clearInterval(t);
+  }, [load]);
 
-  const doLogout = async () => { await logout(); navigate("/"); };
+  const doLogout = async () => {
+    await logout();
+    navigate("/");
+  };
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-background/80 px-6 py-4 backdrop-blur-xl md:px-10">
-        <div className="flex items-center gap-2.5">
-          <div className="grid h-8 w-8 place-items-center rounded-lg bg-primary"><Activity className="h-4 w-4 text-white" strokeWidth={2.5} /></div>
-          <span className="font-heading text-xl font-extrabold uppercase tracking-tight">AutoCare<span className="text-accent">Pulse</span></span>
-          <span className="ml-2 hidden rounded-full bg-secondary px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground sm:inline">Customer Portal</span>
+    <div className="min-h-screen bg-[#090a0d] text-[#e5e7eb] font-body selection:bg-white/20 selection:text-white">
+      {/* Header */}
+      <header className="sticky top-0 z-40 flex items-center justify-between border-b border-white/[0.06] bg-[#090a0d]/90 px-6 py-5 backdrop-blur-md md:px-12">
+        <div className="flex items-center gap-4">
+          <div
+            onClick={() => navigate("/")}
+            className="cursor-pointer flex flex-col font-heading font-black text-white text-base tracking-[0.2em] leading-none select-none hover:opacity-80 transition-opacity"
+          >
+            <span>AUTO</span>
+            <span className="text-neutral-400">CARE</span>
+          </div>
+          <span className="h-4 w-px bg-white/10 hidden sm:block" />
+          <span className="hidden sm:inline font-heading text-xs font-semibold tracking-[0.2em] uppercase text-neutral-400">
+            DRIVER CONSOLE
+          </span>
         </div>
-        <div className="flex items-center gap-3">
-          {user?.picture && <img src={user.picture} alt="me" className="h-8 w-8 rounded-full border border-border" />}
-          <span className="hidden text-sm font-semibold sm:inline">{user?.name}</span>
-          <Button data-testid="user-logout-btn" onClick={doLogout} variant="ghost" size="icon" className="text-muted-foreground"><LogOut className="h-4 w-4" /></Button>
+
+        <div className="flex items-center gap-4">
+          {user?.picture && (
+            <img
+              src={user.picture}
+              alt="Profile"
+              className="h-8 w-8 rounded-full border border-white/20 object-cover"
+            />
+          )}
+          <span className="hidden text-xs font-medium text-neutral-300 md:inline tracking-wide">
+            {user?.name}
+          </span>
+          <button
+            data-testid="user-logout-btn"
+            onClick={doLogout}
+            title="Sign Out"
+            className="p-2 rounded-full border border-white/10 text-neutral-400 hover:text-white hover:border-white/30 transition-colors"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-6 py-8 md:px-10">
-        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+      {/* Main Content */}
+      <main className="mx-auto max-w-6xl px-6 py-10 md:px-12">
+        {/* Top Control Bar */}
+        <div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-end pb-8 border-b border-white/[0.06]">
           <div>
-            <h1 className="font-heading text-3xl font-extrabold uppercase tracking-tight sm:text-4xl">My Incidents</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Track every issue from report to resolution — transparently.</p>
+            <p className="font-heading text-xs font-semibold tracking-[0.25em] uppercase text-neutral-400 mb-1">
+              TELEMATICS OVERVIEW
+            </p>
+            <h1 className="font-heading text-3xl sm:text-4xl font-black uppercase tracking-tight text-white">
+              INCIDENT REGISTER
+            </h1>
+            <p className="mt-1 text-xs sm:text-sm text-neutral-400 font-light">
+              Live status, automated diagnostics &amp; verified dealership workshop progress.
+            </p>
           </div>
-          <Button data-testid="new-incident-btn" onClick={() => setOpen(true)} className="rounded-full bg-primary font-bold uppercase tracking-wide hover:bg-primary/90">
-            <Plus className="mr-2 h-4 w-4" /> Raise Incident
-          </Button>
+
+          <button
+            data-testid="new-incident-btn"
+            onClick={() => setOpen(true)}
+            className="flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-white text-black font-heading font-bold text-xs uppercase tracking-[0.15em] hover:bg-neutral-200 transition-all duration-300 shadow-lg shadow-white/5 shrink-0"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Raise Incident</span>
+          </button>
         </div>
 
-        <div className="mt-8 grid gap-4">
-          {loading && <p className="font-mono text-sm text-muted-foreground">Loading…</p>}
-          {!loading && incidents.length === 0 && (
-            <div className="rounded-xl border border-dashed border-border bg-card/50 p-12 text-center">
-              <Car className="mx-auto h-10 w-10 text-muted-foreground/50" />
-              <p className="mt-3 font-heading text-xl">No incidents yet</p>
-              <p className="text-sm text-muted-foreground">Raise your first one by voice or photo.</p>
+        {/* Incident List */}
+        <div className="mt-8 space-y-4">
+          {loading && (
+            <div className="py-12 text-center">
+              <p className="font-mono text-xs uppercase tracking-widest text-neutral-500">
+                Synchronizing telematics queue…
+              </p>
             </div>
           )}
+
+          {!loading && incidents.length === 0 && (
+            <div className="rounded-2xl border border-dashed border-white/10 bg-[#0e1015]/40 p-16 text-center">
+              <Car className="mx-auto h-10 w-10 text-neutral-600 mb-3" />
+              <h3 className="font-heading text-lg font-bold uppercase tracking-wider text-white">
+                No Active Incidents
+              </h3>
+              <p className="text-xs text-neutral-400 font-light mt-1 max-w-sm mx-auto">
+                Your vehicles are clear. Click 'Raise Incident' above to log a breakdown via voice, photo or text.
+              </p>
+            </div>
+          )}
+
           {incidents.map((inc, i) => (
-            <motion.button key={inc.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
-              data-testid={`incident-card-${inc.id}`} onClick={() => setSelected(inc)}
-              className="group rounded-xl border border-border bg-card p-5 text-left transition-colors duration-200 hover:border-accent/50">
-              <div className="flex flex-wrap items-center justify-between gap-3">
+            <motion.button
+              key={inc.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.04 }}
+              data-testid={`incident-card-${inc.id}`}
+              onClick={() => setSelected(inc)}
+              className="group w-full rounded-2xl bg-[#0e1015] border border-white/[0.08] hover:border-white/20 p-6 text-left transition-all duration-300 flex flex-col justify-between"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                  <span className="font-mono text-xs text-muted-foreground">{inc.id}</span>
+                  <span className="font-mono text-xs font-semibold text-neutral-400 tracking-wider">
+                    {inc.id}
+                  </span>
                   <PriorityBadge priority={inc.priority} testid={`card-priority-${inc.id}`} />
-                  <span className="rounded-md bg-secondary px-2 py-0.5 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">{inc.category}</span>
+                  <span className="rounded bg-white/[0.06] border border-white/[0.06] px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-widest text-neutral-300">
+                    {inc.category}
+                  </span>
                 </div>
                 <StatusBadge status={inc.status} testid={`card-status-${inc.id}`} />
               </div>
-              <h3 className="mt-3 font-heading text-xl font-semibold">{inc.title}</h3>
-              <p className="mt-1 line-clamp-1 text-sm text-muted-foreground">{inc.vehicle_model} · {inc.description}</p>
-              {inc.assignee_name && <p className="mt-2 font-mono text-[11px] text-accent">Technician: {inc.assignee_name}</p>}
+
+              <div className="mt-4">
+                <h3 className="font-heading text-xl font-bold text-white group-hover:text-neutral-200 transition-colors">
+                  {inc.title}
+                </h3>
+                <p className="mt-1 line-clamp-1 text-xs text-neutral-400 font-light">
+                  <span className="text-white font-medium">{inc.vehicle_model}</span> · {inc.description}
+                </p>
+              </div>
+
+              <div className="mt-5 pt-3 border-t border-white/[0.06] flex items-center justify-between text-[11px] font-mono text-neutral-500">
+                <span>
+                  {inc.dealership_name ? `Workshop: ${inc.dealership_name}` : "Pending assignment"}
+                </span>
+                <span className="text-white group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
+                  View Detail <ArrowUpRight className="h-3 w-3" />
+                </span>
+              </div>
             </motion.button>
           ))}
         </div>
       </main>
 
-      <NewIncidentDialog open={open} onOpenChange={setOpen} onCreated={(inc) => { setOpen(false); load(); setSelected(inc); }} />
+      <NewIncidentDialog
+        open={open}
+        onOpenChange={setOpen}
+        onCreated={(inc) => {
+          setOpen(false);
+          load();
+          setSelected(inc);
+        }}
+      />
       <DetailDialog incident={selected} onClose={() => setSelected(null)} />
     </div>
   );
@@ -112,7 +224,13 @@ function NewIncidentDialog({ open, onOpenChange, onCreated }) {
   const [selDealer, setSelDealer] = useState("");
   const [locating, setLocating] = useState(false);
 
-  const reset = () => { setModel(""); setVin(""); setDesc(""); setPhotoPaths([]); setPreview(null); };
+  const reset = () => {
+    setModel("");
+    setVin("");
+    setDesc("");
+    setPhotoPaths([]);
+    setPreview(null);
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -121,7 +239,9 @@ function NewIncidentDialog({ open, onOpenChange, onCreated }) {
         const r = await api.get("/dealerships", { params: lat != null ? { lat, lng } : {} });
         setDealers(r.data);
         if (r.data[0]) setSelDealer(r.data[0].id);
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
       setLocating(false);
     };
     setLocating(true);
@@ -131,7 +251,9 @@ function NewIncidentDialog({ open, onOpenChange, onCreated }) {
         () => fetchD(),
         { timeout: 6000 }
       );
-    } else { fetchD(); }
+    } else {
+      fetchD();
+    }
   }, [open]);
 
   const uploadPhoto = async (e) => {
@@ -153,11 +275,24 @@ function NewIncidentDialog({ open, onOpenChange, onCreated }) {
   };
 
   const submit = async () => {
-    if (!model.trim() || !desc.trim()) { toast.error("Add vehicle model and description"); return; }
-    if (!selDealer) { toast.error("Choose a service center"); return; }
+    if (!model.trim() || !desc.trim()) {
+      toast.error("Add vehicle model and description");
+      return;
+    }
+    if (!selDealer) {
+      toast.error("Choose a service center");
+      return;
+    }
     setBusy(true);
     try {
-      const res = await api.post("/incidents", { description: desc, vehicle_model: model, vehicle_vin: vin, source: tab === "voice" ? "voice" : "manual", photo_paths: photoPaths, dealership_id: selDealer });
+      const res = await api.post("/incidents", {
+        description: desc,
+        vehicle_model: model,
+        vehicle_vin: vin,
+        source: tab === "voice" ? "voice" : "manual",
+        photo_paths: photoPaths,
+        dealership_id: selDealer,
+      });
       toast.success(`Incident ${res.data.id} raised · routed to ${res.data.dealership_name}`);
       reset();
       onCreated(res.data);
@@ -169,77 +304,174 @@ function NewIncidentDialog({ open, onOpenChange, onCreated }) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { onOpenChange(o); if (!o) reset(); }}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto border-border bg-card sm:max-w-lg">
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        onOpenChange(o);
+        if (!o) reset();
+      }}
+    >
+      <DialogContent className="max-h-[90vh] overflow-y-auto border-white/10 bg-[#0e1015] text-white sm:max-w-lg p-8 rounded-2xl shadow-2xl">
         <DialogHeader>
-          <DialogTitle className="font-heading text-2xl uppercase tracking-tight">Raise an Incident</DialogTitle>
-          <DialogDescription>Describe your vehicle issue by text, voice or photo — AI triages it instantly.</DialogDescription>
+          <div className="flex flex-col font-heading font-black text-white text-xs tracking-[0.25em] uppercase text-neutral-400 mb-1">
+            <span>INTAKE ENGINE</span>
+          </div>
+          <DialogTitle className="font-heading text-2xl font-bold uppercase tracking-tight text-white">
+            Log Vehicle Incident
+          </DialogTitle>
+          <DialogDescription className="text-xs text-neutral-400 font-light mt-1">
+            Provide issue symptoms via voice, photo or text. AI performs instant fault classification.
+          </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4">
-          <div className="space-y-1.5">
-            <Label className="flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-muted-foreground">
-              Choose a service center {locating && <span className="text-accent">· locating you…</span>}
+
+        <div className="space-y-5 pt-3">
+          {/* Workshop Center Selector */}
+          <div className="space-y-2">
+            <Label className="flex items-center justify-between font-heading text-[11px] uppercase tracking-[0.15em] text-neutral-400">
+              <span>Select Authorized Workshop</span>
+              {locating && <span className="text-neutral-400 font-mono text-[10px]">· locating…</span>}
             </Label>
-            <div className="ac-scroll max-h-44 space-y-2 overflow-y-auto pr-1">
+            <div className="max-h-40 space-y-2 overflow-y-auto pr-1">
               {dealers.map((d) => (
-                <button type="button" key={d.id} data-testid={`dealer-option-${d.id}`} onClick={() => setSelDealer(d.id)}
-                  className={`w-full rounded-lg border p-3 text-left transition-colors duration-200 ${selDealer === d.id ? "border-accent bg-accent/10" : "border-border bg-secondary/30 hover:border-accent/40"}`}>
+                <button
+                  type="button"
+                  key={d.id}
+                  data-testid={`dealer-option-${d.id}`}
+                  onClick={() => setSelDealer(d.id)}
+                  className={`w-full rounded-xl border p-3.5 text-left transition-all ${
+                    selDealer === d.id
+                      ? "border-white/40 bg-white/[0.08]"
+                      : "border-white/[0.06] bg-[#141720]/60 hover:border-white/20"
+                  }`}
+                >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="font-heading text-base font-semibold">{d.name}</span>
-                    {d.recommended_reason && <span className="rounded-full bg-accent/20 px-2 py-0.5 font-mono text-[9px] uppercase tracking-wider text-accent">{d.recommended_reason}</span>}
+                    <span className="font-heading text-sm font-bold text-white">{d.name}</span>
+                    {d.recommended_reason && (
+                      <span className="rounded bg-white/10 border border-white/10 px-2 py-0.5 font-mono text-[9px] uppercase tracking-wider text-neutral-300">
+                        {d.recommended_reason}
+                      </span>
+                    )}
                   </div>
-                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px] text-muted-foreground">
-                    <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{d.city}{d.distance_km != null ? ` · ${d.distance_km} km` : ""}</span>
-                    <span className="flex items-center gap-1"><Star className="h-3 w-3" />{d.rating}</span>
-                    <span>{d.services_count} serviced</span>
+                  <div className="mt-1 flex flex-wrap items-center gap-x-3 text-[11px] font-mono text-neutral-400">
+                    <span className="flex items-center gap-1">
+                      <MapPin className="h-3 w-3" />
+                      {d.city}
+                      {d.distance_km != null ? ` · ${d.distance_km} km` : ""}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Star className="h-3 w-3" />
+                      {d.rating}
+                    </span>
                   </div>
                 </button>
               ))}
             </div>
           </div>
 
+          {/* Model and VIN */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Vehicle Model</Label>
-              <Input data-testid="incident-model-input" value={model} onChange={(e) => setModel(e.target.value)} placeholder="e.g. auto-incident Activa 6G" className="bg-secondary/50" />
+              <Label className="font-heading text-[11px] uppercase tracking-[0.15em] text-neutral-400">
+                Vehicle Model
+              </Label>
+              <Input
+                data-testid="incident-model-input"
+                value={model}
+                onChange={(e) => setModel(e.target.value)}
+                placeholder="e.g. BMW 330i / Activa 6G"
+                className="bg-[#141720] border-white/10 text-white placeholder:text-neutral-600 rounded-xl text-sm"
+              />
             </div>
             <div className="space-y-1.5">
-              <Label className="font-mono text-xs uppercase tracking-wider text-muted-foreground">VIN (optional)</Label>
-              <Input data-testid="incident-vin-input" value={vin} onChange={(e) => setVin(e.target.value)} placeholder="VIN / chassis" className="bg-secondary/50" />
+              <Label className="font-heading text-[11px] uppercase tracking-[0.15em] text-neutral-400">
+                VIN / Chassis
+              </Label>
+              <Input
+                data-testid="incident-vin-input"
+                value={vin}
+                onChange={(e) => setVin(e.target.value)}
+                placeholder="Optional VIN"
+                className="bg-[#141720] border-white/10 text-white placeholder:text-neutral-600 rounded-xl text-sm"
+              />
             </div>
           </div>
 
+          {/* Input Modality Tabs */}
           <Tabs value={tab} onValueChange={setTab}>
-            <TabsList className="grid w-full grid-cols-3 bg-secondary/50">
-              <TabsTrigger data-testid="tab-manual" value="manual"><Plus className="mr-1.5 h-3.5 w-3.5" />Text</TabsTrigger>
-              <TabsTrigger data-testid="tab-voice" value="voice"><Mic className="mr-1.5 h-3.5 w-3.5" />Voice</TabsTrigger>
-              <TabsTrigger data-testid="tab-photo" value="photo"><Camera className="mr-1.5 h-3.5 w-3.5" />Photo</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-3 bg-[#141720] border border-white/[0.06] rounded-xl p-1">
+              <TabsTrigger
+                data-testid="tab-manual"
+                value="manual"
+                className="data-[state=active]:bg-white data-[state=active]:text-black rounded-lg text-xs font-heading font-semibold uppercase tracking-wider"
+              >
+                Text
+              </TabsTrigger>
+              <TabsTrigger
+                data-testid="tab-voice"
+                value="voice"
+                className="data-[state=active]:bg-white data-[state=active]:text-black rounded-lg text-xs font-heading font-semibold uppercase tracking-wider"
+              >
+                <Mic className="mr-1.5 h-3.5 w-3.5" />
+                Voice
+              </TabsTrigger>
+              <TabsTrigger
+                data-testid="tab-photo"
+                value="photo"
+                className="data-[state=active]:bg-white data-[state=active]:text-black rounded-lg text-xs font-heading font-semibold uppercase tracking-wider"
+              >
+                <Camera className="mr-1.5 h-3.5 w-3.5" />
+                Photo
+              </TabsTrigger>
             </TabsList>
+
             <TabsContent value="voice" className="pt-3">
               <VoiceRecorder onTranscript={(t) => setDesc((p) => (p ? p + " " : "") + t)} />
             </TabsContent>
+
             <TabsContent value="photo" className="pt-3">
-              <label className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border border-dashed border-border bg-secondary/30 p-6 text-center">
-                {preview ? <img src={preview} alt="preview" className="h-32 rounded-lg object-cover" /> : <Upload className="h-8 w-8 text-muted-foreground" />}
-                <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground">{uploading ? "Uploading…" : "Click to upload car/bike photo"}</span>
-                <input data-testid="incident-photo-input" type="file" accept="image/*" className="hidden" onChange={uploadPhoto} />
+              <label className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border border-dashed border-white/20 bg-[#141720]/60 p-6 text-center hover:border-white/40 transition-colors">
+                {preview ? (
+                  <img src={preview} alt="preview" className="h-32 rounded-lg object-cover" />
+                ) : (
+                  <Upload className="h-8 w-8 text-neutral-500" />
+                )}
+                <span className="font-heading text-xs uppercase tracking-wider text-neutral-400">
+                  {uploading ? "Analyzing image…" : "Upload Vehicle Damage Photo"}
+                </span>
+                <input
+                  data-testid="incident-photo-input"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={uploadPhoto}
+                />
               </label>
             </TabsContent>
           </Tabs>
 
+          {/* Description */}
           <div className="space-y-1.5">
-            <Label className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Describe the issue</Label>
-            <Textarea data-testid="incident-desc-input" value={desc} onChange={(e) => setDesc(e.target.value)} rows={4} placeholder="What's wrong with the vehicle?" className="bg-secondary/50" />
+            <Label className="font-heading text-[11px] uppercase tracking-[0.15em] text-neutral-400">
+              Symptom Description
+            </Label>
+            <Textarea
+              data-testid="incident-desc-input"
+              value={desc}
+              onChange={(e) => setDesc(e.target.value)}
+              rows={3}
+              placeholder="Describe symptoms, strange noises, warning lights or visible damage…"
+              className="bg-[#141720] border-white/10 text-white placeholder:text-neutral-600 rounded-xl text-sm"
+            />
           </div>
 
-          <div className="flex items-center gap-2 rounded-lg border border-accent/20 bg-accent/5 p-3">
-            <Sparkles className="h-4 w-4 shrink-0 text-accent" />
-            <p className="text-xs text-muted-foreground">AI will auto-categorise, score severity and set priority the moment you submit.</p>
-          </div>
-
-          <Button data-testid="submit-incident-btn" onClick={submit} disabled={busy} className="w-full rounded-full bg-primary font-bold uppercase tracking-wide hover:bg-primary/90">
-            {busy ? "Analysing with AI…" : "Submit Incident"}
-          </Button>
+          <button
+            data-testid="submit-incident-btn"
+            onClick={submit}
+            disabled={busy}
+            className="w-full h-11 rounded-xl bg-white text-black font-heading font-bold uppercase text-xs tracking-[0.2em] hover:bg-neutral-200 transition-colors disabled:opacity-50"
+          >
+            {busy ? "Triage in progress…" : "Dispatch Incident →"}
+          </button>
         </div>
       </DialogContent>
     </Dialog>
@@ -250,98 +482,211 @@ function DetailDialog({ incident, onClose }) {
   const [cbPhone, setCbPhone] = useState("");
   const [cbWhen, setCbWhen] = useState("");
   const [cbBusy, setCbBusy] = useState(false);
+
   const requestCallback = async () => {
-    if (!cbPhone.trim()) { toast.error("Enter your phone number"); return; }
+    if (!cbPhone.trim()) {
+      toast.error("Enter your phone number");
+      return;
+    }
     setCbBusy(true);
     try {
       const payload = { phone: cbPhone.trim() };
       if (cbWhen) payload.scheduled_at = new Date(cbWhen).toISOString();
       await api.post(`/incidents/${incident.id}/callback`, payload);
-      toast.success(cbWhen ? "Callback scheduled — we'll call at your chosen time" : "Callback requested — the dealer team will call you back");
-      setCbPhone(""); setCbWhen("");
+      toast.success(
+        cbWhen
+          ? "Callback scheduled — we'll call at your chosen time"
+          : "Callback requested — the dealer team will call you back"
+      );
+      setCbPhone("");
+      setCbWhen("");
+    } catch (e) {
+      toast.error(e.response?.data?.detail || "Request failed");
+    } finally {
+      setCbBusy(false);
     }
-    catch (e) { toast.error(e.response?.data?.detail || "Request failed"); }
-    finally { setCbBusy(false); }
   };
+
   const [rsWhen, setRsWhen] = useState("");
   const [rsBusy, setRsBusy] = useState(false);
+
   const reschedule = async () => {
-    if (!rsWhen) { toast.error("Pick a new time"); return; }
+    if (!rsWhen) {
+      toast.error("Pick a new time");
+      return;
+    }
     setRsBusy(true);
-    try { await api.post(`/incidents/${incident.id}/reschedule`, { scheduled_at: new Date(rsWhen).toISOString() }); toast.success("Appointment rescheduled"); setRsWhen(""); }
-    catch (e) { toast.error(e.response?.data?.detail || "Reschedule failed"); }
-    finally { setRsBusy(false); }
+    try {
+      await api.post(`/incidents/${incident.id}/reschedule`, {
+        scheduled_at: new Date(rsWhen).toISOString(),
+      });
+      toast.success("Appointment rescheduled");
+      setRsWhen("");
+    } catch (e) {
+      toast.error(e.response?.data?.detail || "Reschedule failed");
+    } finally {
+      setRsBusy(false);
+    }
   };
+
   if (!incident) return null;
+
   return (
     <Dialog open={!!incident} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto border-border bg-card sm:max-w-lg">
+      <DialogContent className="max-h-[90vh] overflow-y-auto border-white/10 bg-[#0e1015] text-white sm:max-w-lg p-8 rounded-2xl shadow-2xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-3 font-heading text-2xl uppercase tracking-tight">
-            {incident.id}
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-xs font-semibold text-neutral-400 tracking-wider">
+              {incident.id}
+            </span>
+          </div>
+          <DialogTitle className="font-heading text-2xl font-bold uppercase tracking-tight text-white mt-1">
+            {incident.title}
           </DialogTitle>
-          <DialogDescription>Live status, AI assessment and progress timeline for this incident.</DialogDescription>
+          <DialogDescription className="text-xs text-neutral-400 font-light">
+            Verified Incident Timeline &amp; Live Workshop Telematics
+          </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4">
+
+        <div className="space-y-5 pt-3">
+          {/* Metadata Badges */}
           <div className="flex flex-wrap items-center gap-2">
             <StatusBadge status={incident.status} testid="detail-status" />
             <PriorityBadge priority={incident.priority} testid="detail-priority" />
-            <span className="rounded-md bg-secondary px-2 py-0.5 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">{incident.category} · Sev {incident.severity}/5</span>
+            <span className="rounded bg-white/[0.06] border border-white/[0.08] px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-widest text-neutral-300">
+              {incident.category} · Sev {incident.severity}/5
+            </span>
           </div>
-          <div>
-            <h3 className="font-heading text-xl font-semibold">{incident.title}</h3>
-            <p className="text-sm text-muted-foreground">{incident.vehicle_model}{incident.vehicle_vin ? ` · ${incident.vehicle_vin}` : ""}</p>
+
+          <div className="rounded-xl bg-[#141720] border border-white/[0.06] p-4 text-xs space-y-1.5 font-light">
+            <p className="text-neutral-400">
+              <strong className="text-white font-medium">Model:</strong> {incident.vehicle_model}
+              {incident.vehicle_vin ? ` (${incident.vehicle_vin})` : ""}
+            </p>
+            <p className="text-neutral-300 leading-relaxed">{incident.description}</p>
           </div>
-          <p className="text-sm">{incident.description}</p>
+
           {incident.photo_paths?.length > 0 && (
-            <img data-testid="detail-photo" src={`${API}/files/${incident.photo_paths[0]}`} alt="issue" className="max-h-56 w-full rounded-lg border border-border object-cover" />
+            <img
+              data-testid="detail-photo"
+              src={`${API}/files/${incident.photo_paths[0]}`}
+              alt="Damage photo"
+              className="max-h-52 w-full rounded-xl border border-white/10 object-cover"
+            />
           )}
+
           {incident.recommended_action && (
-            <div className="rounded-lg border border-accent/20 bg-accent/5 p-3">
-              <p className="font-mono text-[11px] uppercase tracking-wider text-accent">AI Recommendation</p>
-              <p className="mt-1 text-sm">{incident.recommended_action}</p>
+            <div className="rounded-xl border border-white/[0.08] bg-[#141720]/80 p-4">
+              <p className="font-heading text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400">
+                AI Diagnostic Directive
+              </p>
+              <p className="mt-1 text-xs text-neutral-200 font-light">
+                {incident.recommended_action}
+              </p>
             </div>
           )}
-          {incident.assignee_name && <p className="font-mono text-sm text-accent">Technician: {incident.assignee_name}</p>}
 
+          {incident.assignee_name && (
+            <p className="font-mono text-xs text-neutral-300">
+              Assigned Specialist: <span className="text-white font-semibold">{incident.assignee_name}</span>
+            </p>
+          )}
+
+          {/* Service Update (RSA, Remote, Slot) */}
           {incident.resolution_path && (
-            <div data-testid="customer-service-update" className="rounded-xl border border-accent/30 bg-accent/5 p-3">
-              <p className="font-mono text-[11px] uppercase tracking-wider text-accent">Your Service Update</p>
+            <div
+              data-testid="customer-service-update"
+              className="rounded-xl border border-white/10 bg-[#141720] p-4"
+            >
+              <p className="font-heading text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400 mb-2">
+                Operational Dispatch Update
+              </p>
               {incident.resolution_path === "rsa" && (
-                <div className="mt-2"><RsaTracker incidentId={incident.id} /></div>
+                <RsaTracker incidentId={incident.id} />
               )}
               {incident.resolution_path === "remote" && (
-                <p className="mt-1 text-sm">Our team is resolving your issue remotely. We'll update you here shortly.</p>
+                <p className="text-xs text-neutral-300 font-light">
+                  Technician is executing remote diagnostics. You will receive an update shortly.
+                </p>
               )}
               {incident.resolution_path === "slot" && incident.appointment && (
-                <div className="mt-1 space-y-2">
-                  <p className="text-sm">Appointment booked for <strong>{new Date(incident.appointment.slot_start).toLocaleString()}</strong> with {incident.appointment.technician_name}.{incident.appointment.position ? ` You're #${incident.appointment.position} in the queue (${incident.appointment.lanes_total} service bays running).` : ""}</p>
+                <div className="space-y-3">
+                  <p className="text-xs text-neutral-300 font-light">
+                    Workshop bay appointment reserved for{" "}
+                    <strong className="text-white font-medium">
+                      {new Date(incident.appointment.slot_start).toLocaleString()}
+                    </strong>{" "}
+                    with {incident.appointment.technician_name}.
+                    {incident.appointment.position
+                      ? ` Position #${incident.appointment.position} in bay queue.`
+                      : ""}
+                  </p>
                   <div className="flex gap-2">
-                    <input data-testid="reschedule-time-input" type="datetime-local" min={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)} value={rsWhen} onChange={(e) => setRsWhen(e.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground" />
-                    <Button data-testid="reschedule-btn" onClick={reschedule} disabled={rsBusy} className="rounded-full bg-accent font-bold text-accent-foreground hover:bg-accent/90">{rsBusy ? "…" : "Reschedule"}</Button>
+                    <input
+                      data-testid="reschedule-time-input"
+                      type="datetime-local"
+                      min={new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
+                        .toISOString()
+                        .slice(0, 16)}
+                      value={rsWhen}
+                      onChange={(e) => setRsWhen(e.target.value)}
+                      className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-1.5 text-xs text-white"
+                    />
+                    <button
+                      data-testid="reschedule-btn"
+                      onClick={reschedule}
+                      disabled={rsBusy}
+                      className="px-4 py-1.5 rounded-lg bg-white text-black font-heading text-xs font-bold uppercase tracking-wider shrink-0 hover:bg-neutral-200 transition-colors"
+                    >
+                      {rsBusy ? "…" : "Reschedule"}
+                    </button>
                   </div>
                 </div>
               )}
             </div>
           )}
 
-          <div className="border-t border-border pt-4">
-            <p className="mb-3 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Live Progress</p>
+          {/* Progress Timeline */}
+          <div className="border-t border-white/[0.06] pt-4">
+            <p className="mb-3 font-heading text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400">
+              Verified Progress Timeline
+            </p>
             <IncidentTimeline incident={incident} />
           </div>
 
-          <div className="rounded-xl border border-border bg-secondary/20 p-3">
-            <p className="mb-2 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Request a Callback</p>
+          {/* Request Callback */}
+          <div className="rounded-xl border border-white/[0.08] bg-[#141720]/60 p-4 space-y-2">
+            <p className="font-heading text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400">
+              Direct Workshop Callback
+            </p>
             <div className="flex gap-2">
-              <Input data-testid="callback-phone-input" value={cbPhone} onChange={(e) => setCbPhone(e.target.value)} placeholder="Your phone e.g. +14155550100" className="bg-background" />
-              <Button data-testid="request-callback-btn" onClick={requestCallback} disabled={cbBusy} className="rounded-full bg-primary font-bold hover:bg-primary/90">
-                <PhoneCall className="mr-1.5 h-4 w-4" /> {cbBusy ? "Requesting…" : "Call Me"}
-              </Button>
+              <Input
+                data-testid="callback-phone-input"
+                value={cbPhone}
+                onChange={(e) => setCbPhone(e.target.value)}
+                placeholder="+1 (555) 000-0000"
+                className="bg-black/40 border-white/10 text-white rounded-lg text-xs"
+              />
+              <button
+                data-testid="request-callback-btn"
+                onClick={requestCallback}
+                disabled={cbBusy}
+                className="px-4 py-1.5 rounded-lg bg-white text-black font-heading text-xs font-bold uppercase tracking-wider shrink-0 hover:bg-neutral-200 transition-colors flex items-center gap-1.5"
+              >
+                <PhoneCall className="h-3 w-3" />
+                <span>{cbBusy ? "Sending…" : "Call Me"}</span>
+              </button>
             </div>
-            <input data-testid="callback-time-input" type="datetime-local" value={cbWhen} onChange={(e) => setCbWhen(e.target.value)} className="mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground" />
-            <p className="mt-1 font-mono text-[10px] text-muted-foreground">Pick a time to schedule the callback, or leave empty to be called as soon as possible.</p>
+            <input
+              data-testid="callback-time-input"
+              type="datetime-local"
+              value={cbWhen}
+              onChange={(e) => setCbWhen(e.target.value)}
+              className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-1.5 text-xs text-white"
+            />
           </div>
 
+          {/* Chat Thread */}
           <ChatThread incidentId={incident.id} role="customer" />
         </div>
       </DialogContent>

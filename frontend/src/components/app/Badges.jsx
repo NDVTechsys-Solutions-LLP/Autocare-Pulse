@@ -1,17 +1,17 @@
 import React from "react";
 
 const STATUS_MAP = {
-  submitted: { label: "Submitted", cls: "bg-slate-500/15 text-slate-300 border-slate-500/30" },
-  ai_triaged: { label: "AI Triaged", cls: "bg-cyan-500/15 text-cyan-300 border-cyan-500/30" },
-  assigned: { label: "Assigned", cls: "bg-blue-500/15 text-blue-300 border-blue-500/30" },
-  in_progress: { label: "In Workshop", cls: "bg-amber-500/15 text-amber-300 border-amber-500/30" },
-  resolved: { label: "Resolved", cls: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30" },
+  submitted: { label: "Submitted", cls: "bg-white/[0.04] text-neutral-400 border-white/10" },
+  ai_triaged: { label: "AI Triaged", cls: "bg-white/[0.08] text-white border-white/20" },
+  assigned: { label: "Assigned", cls: "bg-white/[0.06] text-neutral-200 border-white/15" },
+  in_progress: { label: "In Workshop", cls: "bg-white/[0.08] text-neutral-100 border-white/20" },
+  resolved: { label: "Resolved", cls: "bg-white/10 text-white border-white/25" },
 };
 
 const PRIORITY_MAP = {
-  High: "bg-red-500/15 text-red-400 border-red-500/40",
-  Medium: "bg-amber-500/15 text-amber-400 border-amber-500/30",
-  Low: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
+  High: "bg-white/[0.08] text-white border-white/20",
+  Medium: "bg-white/[0.05] text-neutral-300 border-white/15",
+  Low: "bg-white/[0.03] text-neutral-400 border-white/10",
 };
 
 export const StatusBadge = ({ status, testid }) => {

@@ -72,17 +72,34 @@ export default function DealerConsole() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-background/80 px-6 py-4 backdrop-blur-xl md:px-10">
-        <div className="flex items-center gap-2.5">
-          <div className="grid h-8 w-8 place-items-center rounded-lg bg-primary"><Activity className="h-4 w-4 text-white" strokeWidth={2.5} /></div>
-          <span className="font-heading text-xl font-extrabold uppercase tracking-tight">AutoCare<span className="text-accent">Pulse</span></span>
-          {dealer.dealership_name && <span data-testid="dealer-dealership-name" className="ml-2 rounded-full border border-accent/40 bg-accent/10 px-3 py-0.5 font-heading text-sm font-bold uppercase tracking-tight text-accent">{dealer.dealership_name}</span>}
-          <span className="ml-2 hidden rounded-full bg-secondary px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground sm:inline">Dealer Ops Console</span>
+    <div className="min-h-screen bg-[#090a0d] text-[#e5e7eb] font-body selection:bg-white/20 selection:text-white">
+      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-white/[0.06] bg-[#090a0d]/90 px-6 py-4 backdrop-blur-md md:px-10">
+        <div className="flex items-center gap-4">
+          <div
+            onClick={() => navigate("/")}
+            className="cursor-pointer flex flex-col font-heading font-black text-white text-base tracking-[0.2em] leading-none select-none hover:opacity-80 transition-opacity"
+          >
+            <span>AUTO</span>
+            <span className="text-neutral-400">CARE</span>
+          </div>
+          <span className="h-4 w-px bg-white/10 hidden sm:block" />
+          {dealer.dealership_name && (
+            <span
+              data-testid="dealer-dealership-name"
+              className="rounded-full border border-white/20 bg-white/[0.06] px-3 py-1 font-heading text-xs font-bold uppercase tracking-wider text-white"
+            >
+              {dealer.dealership_name}
+            </span>
+          )}
+          <span className="hidden font-heading text-xs font-semibold tracking-[0.2em] uppercase text-neutral-400 sm:inline">
+            WORKSHOP OPS CONSOLE
+          </span>
         </div>
         <div className="flex items-center gap-3">
-          <span className="hidden text-sm font-semibold sm:inline">{dealer.name}</span>
-          <Button data-testid="dealer-logout-btn" onClick={logout} variant="ghost" size="icon" className="text-muted-foreground"><LogOut className="h-4 w-4" /></Button>
+          <span className="hidden text-xs font-medium text-neutral-300 sm:inline tracking-wide">{dealer.name}</span>
+          <Button data-testid="dealer-logout-btn" onClick={logout} variant="ghost" size="icon" className="p-2 rounded-full border border-white/10 text-neutral-400 hover:text-white hover:border-white/30 transition-colors">
+            <LogOut className="h-4 w-4" />
+          </Button>
         </div>
       </header>
 
