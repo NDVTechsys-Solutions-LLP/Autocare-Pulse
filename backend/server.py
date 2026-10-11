@@ -438,7 +438,7 @@ async def serve_file(path: str):
 
 # ---------------- Voice ----------------
 @api_router.post("/voice/transcribe")
-async def transcribe(file: UploadFile = File(...), user=Depends(get_current_user)):
+async def transcribe(file: UploadFile = File(...)):
     data = await file.read()
     if not data:
         return {"text": ""}

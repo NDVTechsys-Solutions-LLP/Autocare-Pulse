@@ -10,14 +10,14 @@ class OpenAISpeechToText:
         self.api_key = api_key or os.environ.get("EMERGENT_LLM_KEY")
         self.base_url = (os.environ.get("INTEGRATION_PROXY_URL") or "https://integrations.emergentagent.com").rstrip("/")
 
-    async def transcribe(self, file=None, model="whisper-1", response_format="json"):
+    async def transcribe(self, file=None, model="whisper-1", response_format="json", **kwargs):
         class STTResult:
             def __init__(self, text):
                 self.text = text
 
         if not self.api_key:
             logger.warning("No EMERGENT_LLM_KEY provided for speech-to-text.")
-            return STTResult("Voice issue report recorded.")
+            return STTResult("")
 
         try:
             filename = "voice.webm"
@@ -58,7 +58,7 @@ class OpenAISpeechToText:
                     return STTResult(transcribed_text)
                 else:
                     logger.warning(f"Emergent STT error {resp.status_code}: {resp.text}")
-                    return STTResult("Voice recording attached.")
+                    return STTResult("")
         except Exception as e:
             logger.error(f"Speech-to-text error: {e}")
-            return STTResult("Voice recording attached.")
+            return STTResult("")
