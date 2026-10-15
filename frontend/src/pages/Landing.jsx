@@ -120,43 +120,37 @@ export default function Landing() {
             </span>
           </div>
 
-          {/* Center: Clean Navigation Links with active pill (Matches Reference) */}
+          {/* Center: Landing Page Information-Related Navigation Buttons */}
           <nav className="hidden lg:flex items-center gap-1 xl:gap-2 text-xs font-medium">
             <button
-              onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-              className="px-3.5 py-1.5 rounded-full bg-white/10 text-white font-medium hover:bg-white/15 transition-colors cursor-pointer"
-            >
-              Home
-            </button>
-            <button
               onClick={() => scrollTo("section-02")}
-              className="px-3 py-1.5 rounded-full text-neutral-400 hover:text-white transition-colors cursor-pointer"
+              className="px-3 py-1.5 rounded-full text-neutral-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
             >
-              Journey
-            </button>
-            <button
-              onClick={() => scrollTo("section-01")}
-              className="px-3 py-1.5 rounded-full text-neutral-400 hover:text-white transition-colors cursor-pointer"
-            >
-              Overview
+              The Problem
             </button>
             <button
               onClick={() => scrollTo("section-03")}
-              className="px-3 py-1.5 rounded-full text-neutral-400 hover:text-white transition-colors cursor-pointer"
+              className="px-3 py-1.5 rounded-full text-neutral-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
             >
-              Features
+              How It Works
             </button>
             <button
               onClick={() => scrollTo("section-04")}
-              className="px-3 py-1.5 rounded-full text-neutral-400 hover:text-white transition-colors cursor-pointer"
+              className="px-3 py-1.5 rounded-full text-neutral-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
             >
-              Workflow
+              AI Triage
             </button>
             <button
               onClick={() => scrollTo("section-05")}
-              className="px-3 py-1.5 rounded-full text-neutral-400 hover:text-white transition-colors cursor-pointer"
+              className="px-3 py-1.5 rounded-full text-neutral-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
             >
-              FAQ
+              Dual Portals
+            </button>
+            <button
+              onClick={() => scrollTo("section-06")}
+              className="px-3 py-1.5 rounded-full text-neutral-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
+            >
+              Use Cases
             </button>
           </nav>
 
@@ -577,7 +571,7 @@ export default function Landing() {
                 </p>
               </div>
               <div className="mt-6 pt-4 border-t border-white/[0.06] text-[11px] font-mono text-neutral-500">
-                Decisioned in &lt; 1.2s
+                Automated Triage Routing
               </div>
             </div>
 
@@ -619,7 +613,7 @@ export default function Landing() {
                 </p>
               </div>
               <div className="mt-6 pt-4 border-t border-white/[0.06] text-[11px] font-mono text-neutral-500">
-                Peak Customer Satisfaction
+                Real-Time Progress Tracking
               </div>
             </div>
           </div>
@@ -769,7 +763,7 @@ export default function Landing() {
               </div>
 
               <div className="mt-8 pt-4 border-t border-white/[0.06] text-[11px] font-mono text-neutral-400 flex items-center justify-between">
-                <span>Cuts Resolution Downtime by 60%</span>
+                <span>Automated Incident Routing</span>
                 <span className="text-[#E63946]">Guaranteed Priority SLA</span>
               </div>
             </div>
@@ -1250,6 +1244,7 @@ export default function Landing() {
       {/* Enterprise Multi-Column Footer Matching TripShield Reference */}
       <AutoCareFooter
         onOpenDemo={() => setDemoOpen(true)}
+        onOpenGetQuote={() => setCodeOpen(true)}
         onOpenGetCode={() => setCodeOpen(true)}
         onDealerLogin={() => {
           const el = document.getElementById("section-07");

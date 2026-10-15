@@ -322,24 +322,6 @@ export default function AutoCareFooter({
               <Linkedin size={15} />
             </a>
             <a
-              href="https://instagram.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Instagram"
-              className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/15 border border-white/10 flex items-center justify-center text-neutral-300 hover:text-white transition-colors"
-            >
-              <Instagram size={15} />
-            </a>
-            <a
-              href="https://facebook.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Facebook"
-              className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/15 border border-white/10 flex items-center justify-center text-neutral-300 hover:text-white transition-colors"
-            >
-              <Facebook size={15} />
-            </a>
-            <a
               href="https://youtube.com"
               target="_blank"
               rel="noopener noreferrer"
