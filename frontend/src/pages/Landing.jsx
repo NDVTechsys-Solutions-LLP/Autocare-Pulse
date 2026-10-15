@@ -22,7 +22,6 @@ import {
   Layers,
   ChevronRight,
   Activity,
-  Type,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -63,7 +62,6 @@ export default function Landing() {
   const [email, setEmail] = useState("ndvtechsys.solutions@gmail.com");
   const [password, setPassword] = useState("DealerPass123!");
   const [busy, setBusy] = useState(false);
-  const [activeFontSet, setActiveFontSet] = useState("sora");
 
   const googleLogin = () => {
     // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
@@ -100,11 +98,7 @@ export default function Landing() {
   };
 
   return (
-    <div
-      className={`min-h-screen bg-[#090a0d] text-[#e5e7eb] font-body selection:bg-white/20 selection:text-white ${
-        activeFontSet === "urbanist" ? "font-theme-urbanist" : ""
-      }`}
-    >
+    <div className="min-h-screen bg-[#07090e] text-[#e5e7eb] font-body selection:bg-white/20 selection:text-white">
       {/* =========================================================================
           FIXED MINIMALIST NAVIGATION
           ========================================================================= */}
@@ -162,11 +156,11 @@ export default function Landing() {
 
           {/* Right: Action Buttons Group (Exact Placement from Reference Image) */}
           <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
-            {/* Request Demo Button - Solid Red Pill */}
+            {/* Request Demo Button - Electric Cyan Pill matching reference image */}
             <button
               data-testid="nav-request-demo-btn"
               onClick={() => setDemoOpen(true)}
-              className="bg-[#e60012] hover:bg-[#c80010] text-white px-4 sm:px-5 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer shadow-none"
+              className="bg-[#00F0FF] hover:bg-[#00d8e6] text-[#090a0d] px-4 sm:px-5 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer shadow-md shadow-[#00F0FF]/25 active:scale-95"
             >
               Request Demo
             </button>
@@ -190,7 +184,7 @@ export default function Landing() {
                   Dealer
                 </button>
               </DialogTrigger>
-              <DialogContent className="border-white/10 bg-[#0e1015] text-white max-w-md p-8 rounded-2xl shadow-2xl">
+              <DialogContent className="border-white/10 bg-[#0c111d] text-white max-w-md p-8 rounded-2xl shadow-2xl">
               <DialogHeader>
                 <div className="flex flex-col font-heading font-black text-white text-xs tracking-[0.25em] uppercase text-neutral-400 mb-2">
                   <span>WORKSHOP CONSOLE</span>
@@ -214,7 +208,7 @@ export default function Landing() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="bg-[#141720] border-white/10 text-white focus:border-white/40 h-11 rounded-lg"
+                    className="bg-[#07090e] border-white/10 text-white focus:border-white/40 h-11 rounded-lg"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -228,7 +222,7 @@ export default function Landing() {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••••••"
                     required
-                    className="bg-[#141720] border-white/10 text-white focus:border-white/40 h-11 rounded-lg"
+                    className="bg-[#07090e] border-white/10 text-white focus:border-white/40 h-11 rounded-lg"
                   />
                 </div>
                 <button
@@ -261,11 +255,11 @@ export default function Landing() {
             className="w-full h-full object-cover object-center opacity-30 md:opacity-40 scale-100 transform-gpu transition-opacity duration-700"
           />
           {/* Top Fade to seamless match navbar */}
-          <div className="absolute inset-x-0 top-0 h-44 bg-gradient-to-b from-[#090a0d] via-[#090a0d]/85 to-transparent" />
+          <div className="absolute inset-x-0 top-0 h-44 bg-gradient-to-b from-[#07090e] via-[#07090e]/85 to-transparent" />
           {/* Bottom Fade to smoothly melt into Section .02 */}
-          <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-[#090a0d] via-[#090a0d]/90 to-transparent" />
+          <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-[#07090e] via-[#07090e]/90 to-transparent" />
           {/* Radial Center & Edge Vignette for Crisp Typographic Legibility */}
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(9,10,13,0.55)_0%,rgba(9,10,13,0.85)_65%,#090a0d_100%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(7,9,14,0.55)_0%,rgba(7,9,14,0.85)_65%,#07090e_100%)]" />
         </div>
 
         {/* Top Spacer */}
@@ -300,7 +294,7 @@ export default function Landing() {
             transition={{ duration: 0.6, delay: 0.15 }}
             className="font-subheading text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold tracking-tight text-neutral-100 mt-4 max-w-3xl leading-snug"
           >
-            INTELLIGENT AI TRIAGE <span className="text-[#E63946]">FROM CUSTOMER INPUT</span> TO DEALER ACTION
+            INTELLIGENT AI TRIAGE <span className="text-[#e60012]">FROM CUSTOMER INPUT</span> TO DEALER ACTION
           </motion.p>
 
           {/* Subtitle */}
@@ -397,7 +391,7 @@ export default function Landing() {
           {/* Comparison Cards (Before vs After) */}
           <div className="grid gap-8 lg:grid-cols-2">
             {/* The Traditional Way */}
-            <div className="rounded-2xl bg-[#0e1015] border border-white/[0.08] p-8 sm:p-10 flex flex-col justify-between">
+            <div className="rounded-2xl bg-[#0c111d] border border-white/[0.08] p-8 sm:p-10 flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between pb-6 border-b border-white/[0.06]">
                   <div>
@@ -408,7 +402,7 @@ export default function Landing() {
                       The Roadside Ordeal
                     </h3>
                   </div>
-                  <XCircle className="h-6 w-6 text-[#E63946]" />
+                  <XCircle className="h-6 w-6 text-[#e60012]" />
                 </div>
 
                 <div className="space-y-5 pt-6 text-xs sm:text-sm text-neutral-400 font-light leading-relaxed">
@@ -445,7 +439,7 @@ export default function Landing() {
             </div>
 
             {/* The AutoCare Pulse Way */}
-            <div className="rounded-2xl bg-[#0e1015] border border-white/20 p-8 sm:p-10 flex flex-col justify-between shadow-2xl relative">
+            <div className="rounded-2xl bg-[#0c111d] border border-white/20 p-8 sm:p-10 flex flex-col justify-between shadow-2xl relative">
               <div className="absolute top-4 right-4">
                 <span className="rounded-md bg-[#00F0FF]/15 border border-[#00F0FF]/35 px-2.5 py-1 font-heading text-[10px] font-bold uppercase tracking-wider text-[#00F0FF]">
                   AUTOCARE PULSE STANDARD
@@ -540,7 +534,7 @@ export default function Landing() {
           {/* 4 Step Process Cards */}
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {/* Step 1 */}
-            <div className="rounded-2xl bg-[#0e1015] border border-white/[0.08] p-6 sm:p-7 flex flex-col justify-between hover:border-white/20 transition-all">
+            <div className="rounded-2xl bg-[#0c111d] border border-white/[0.08] p-6 sm:p-7 flex flex-col justify-between hover:border-white/20 transition-all">
               <div>
                 <div className="flex items-center justify-between mb-6">
                   <span className="font-mono text-xs font-bold text-[#00F0FF] bg-[#00F0FF]/15 border border-[#00F0FF]/30 px-2.5 py-1 rounded">
@@ -561,7 +555,7 @@ export default function Landing() {
             </div>
 
             {/* Step 2 */}
-            <div className="rounded-2xl bg-[#0e1015] border border-white/[0.08] p-6 sm:p-7 flex flex-col justify-between hover:border-white/20 transition-all">
+            <div className="rounded-2xl bg-[#0c111d] border border-white/[0.08] p-6 sm:p-7 flex flex-col justify-between hover:border-white/20 transition-all">
               <div>
                 <div className="flex items-center justify-between mb-6">
                   <span className="font-mono text-xs font-bold text-[#00F0FF] bg-[#00F0FF]/15 border border-[#00F0FF]/30 px-2.5 py-1 rounded">
@@ -582,34 +576,34 @@ export default function Landing() {
             </div>
 
             {/* Step 3 */}
-            <div className="rounded-2xl bg-[#0e1015] border border-white/[0.08] p-6 sm:p-7 flex flex-col justify-between hover:border-white/20 transition-all">
+            <div className="rounded-2xl bg-[#0c111d] border border-white/[0.08] p-6 sm:p-7 flex flex-col justify-between hover:border-white/20 transition-all">
               <div>
                 <div className="flex items-center justify-between mb-6">
-                  <span className="font-mono text-xs font-bold text-[#E63946] bg-[#E63946]/15 border border-[#E63946]/30 px-2.5 py-1 rounded">
+                  <span className="font-mono text-xs font-bold text-[#e60012] bg-[#e60012]/15 border border-[#e60012]/30 px-2.5 py-1 rounded">
                     STEP 03
                   </span>
-                  <Wrench className="h-5 w-5 text-[#E63946]" />
+                  <Wrench className="h-5 w-5 text-[#e60012]" />
                 </div>
                 <h3 className="font-heading font-bold text-base sm:text-lg text-white tracking-normal">
                   Dealer Handshake
                 </h3>
                 <p className="font-body mt-2.5 text-xs text-neutral-400 font-normal leading-relaxed">
-                  Diagnostics route straight to the dealership console. Subscribed Priority Customers flash at the top of the dealer's VIP queue for immediate technician allocation.
+                  Diagnostics route straight to the dealership console. Subscribed Priority Customers are automatically highlighted at the top of the queue for immediate technician allocation.
                 </p>
               </div>
               <div className="mt-6 pt-4 border-t border-white/[0.06] text-[11px] font-mono text-neutral-500">
-                Priority VIP Queue
+                Priority Ticket Queue
               </div>
             </div>
 
             {/* Step 4 */}
-            <div className="rounded-2xl bg-[#0e1015] border border-white/[0.08] p-6 sm:p-7 flex flex-col justify-between hover:border-white/20 transition-all">
+            <div className="rounded-2xl bg-[#0c111d] border border-white/[0.08] p-6 sm:p-7 flex flex-col justify-between hover:border-white/20 transition-all">
               <div>
                 <div className="flex items-center justify-between mb-6">
-                  <span className="font-mono text-xs font-bold text-[#E63946] bg-[#E63946]/15 border border-[#E63946]/30 px-2.5 py-1 rounded">
+                  <span className="font-mono text-xs font-bold text-[#e60012] bg-[#e60012]/15 border border-[#e60012]/30 px-2.5 py-1 rounded">
                     STEP 04
                   </span>
-                  <Clock className="h-5 w-5 text-[#E63946]" />
+                  <Clock className="h-5 w-5 text-[#e60012]" />
                 </div>
                 <h3 className="font-heading font-bold text-base sm:text-lg text-white tracking-normal">
                   Rapid Resolution
@@ -652,20 +646,20 @@ export default function Landing() {
           {/* Header */}
           <div className="text-center mb-16">
             <p className="font-heading text-[11px] font-semibold tracking-[0.2em] uppercase text-[#00F0FF] mb-2.5">
-              INTELLIGENT DECISION ENGINE &bull; NATIONWIDE VIP SCALE
+              AUTOMATED INCIDENT INTAKE &bull; WORKSHOP ROUTING
             </p>
             <h2 className="font-heading font-bold text-2xl sm:text-3xl md:text-4xl uppercase tracking-[0.03em] text-white">
-              AI TRIAGE &amp; PRIORITY SUBSCRIPTION
+              AI TRIAGE &amp; PRIORITY WORKFLOWS
             </h2>
             <p className="font-body mt-3 text-sm text-neutral-400 max-w-2xl mx-auto font-normal leading-relaxed">
-              How AutoCare Pulse analyzes car and bike issues via image or voice, calculates the optimal customer outcome, and delivers accelerated dealer resolution for millions of vehicle owners.
+              How AutoCare Pulse analyzes vehicle issues via photo and voice descriptions, determines roadside rescue versus workshop routing, and coordinates intake across authorized service networks.
             </p>
           </div>
 
           {/* Two-Column Deep Dive */}
           <div className="grid gap-8 lg:grid-cols-2 items-stretch">
             {/* Left Card: AI Triage Decision Engine */}
-            <div className="rounded-2xl bg-[#0e1015] border border-white/[0.08] p-8 sm:p-10 flex flex-col justify-between hover:border-[#00F0FF]/30 transition-all">
+            <div className="rounded-2xl bg-[#0c111d] border border-white/[0.08] p-8 sm:p-10 flex flex-col justify-between hover:border-[#00F0FF]/30 transition-all">
               <div>
                 <div className="flex items-center justify-between pb-6 border-b border-white/[0.06]">
                   <div>
@@ -684,9 +678,9 @@ export default function Landing() {
                     When a customer encounters trouble on the road or at home, they upload an image or voice note describing the defect affecting their car or bike. AI Vision instantly analyzes the mechanical fault, warning light, or collision damage.
                   </p>
 
-                  <div className="p-4 rounded-xl bg-[#141720] border border-white/[0.04] space-y-2">
+                  <div className="p-4 rounded-xl bg-[#07090e] border border-white/[0.08] space-y-2">
                     <div className="flex items-center gap-2">
-                      <span className="h-2 w-2 rounded-full bg-[#E63946]" />
+                      <span className="h-2 w-2 rounded-full bg-[#e60012]" />
                       <h4 className="font-heading font-bold text-white text-xs uppercase tracking-wider">
                         Outcome Path A — Immediate Dealer Roadside Assistance
                       </h4>
@@ -696,7 +690,7 @@ export default function Landing() {
                     </p>
                   </div>
 
-                  <div className="p-4 rounded-xl bg-[#141720] border border-white/[0.04] space-y-2">
+                  <div className="p-4 rounded-xl bg-[#07090e] border border-white/[0.08] space-y-2">
                     <div className="flex items-center gap-2">
                       <span className="h-2 w-2 rounded-full bg-[#00F0FF]" />
                       <h4 className="font-heading font-bold text-white text-xs uppercase tracking-wider">
@@ -717,52 +711,52 @@ export default function Landing() {
             </div>
 
             {/* Right Card: Priority Customer Subscription */}
-            <div className="rounded-2xl bg-[#0e1015] border border-white/20 p-8 sm:p-10 flex flex-col justify-between shadow-2xl relative hover:border-[#E63946]/40 transition-all">
+            <div className="rounded-2xl bg-[#0c111d] border border-white/20 p-8 sm:p-10 flex flex-col justify-between shadow-2xl relative hover:border-[#e60012]/40 transition-all">
               <div className="absolute top-4 right-4">
-                <span className="rounded-md bg-[#E63946]/15 border border-[#E63946]/35 px-2.5 py-1 font-heading text-[10px] font-bold uppercase tracking-wider text-[#E63946]">
-                  VIP SERVICE TIER
+                <span className="rounded-md bg-[#e60012]/15 border border-[#e60012]/35 px-2.5 py-1 font-heading text-[10px] font-bold uppercase tracking-wider text-[#e60012]">
+                  PRIORITY SERVICE TIER
                 </span>
               </div>
 
               <div>
                 <div className="flex items-center justify-between pb-6 border-b border-white/[0.06]">
                   <div>
-                    <span className="font-heading text-[10px] font-bold tracking-[0.2em] uppercase text-[#E63946]">
-                      NATIONWIDE SCALE (LAKHS &amp; CRORES OF VEHICLES)
+                    <span className="font-heading text-[10px] font-bold tracking-[0.2em] uppercase text-[#e60012]">
+                      ENTERPRISE QUEUE &amp; SERVICE ALLOCATION
                     </span>
                     <h3 className="font-heading font-bold text-lg sm:text-xl uppercase tracking-tight text-white mt-1">
-                      Priority Customer Subscription
+                      Priority Customer Service Workflows
                     </h3>
                   </div>
-                  <ShieldCheck className="h-6 w-6 text-[#E63946]" />
+                  <ShieldCheck className="h-6 w-6 text-[#e60012]" />
                 </div>
 
                 <div className="space-y-4 pt-6 text-xs sm:text-sm text-neutral-300 font-light leading-relaxed">
                   <p className="text-neutral-300">
-                    With lakhs and crores of vehicle owners on Indian roads, workshop queues and roadside delays can leave drivers waiting for hours. By subscribing to the <strong className="text-white font-medium">Pulse Priority Membership</strong>, customers unlock guaranteed fast-track care.
+                    High-density service centers often experience intake bottlenecks during peak hours. AutoCare Pulse enables dealerships to offer service workflows that fast-track verified vehicles directly to available repair bays with pre-allocated parts.
                   </p>
 
-                  <div className="p-4 rounded-xl bg-[#141720] border border-white/[0.04] space-y-2">
+                  <div className="p-4 rounded-xl bg-[#07090e] border border-white/[0.08] space-y-2">
                     <div className="flex items-center gap-2">
-                      <span className="h-2 w-2 rounded-full bg-[#E63946]" />
+                      <span className="h-2 w-2 rounded-full bg-[#e60012]" />
                       <h4 className="font-heading font-bold text-white text-xs uppercase tracking-wider">
-                        Dedicated Dealer Priority Customer Roster
+                        Dedicated Dealer Priority Queue
                       </h4>
                     </div>
                     <p className="text-neutral-400 text-xs">
-                      Authorized service center foremen and dealers gain a dedicated, filtered list of Priority Customers. Whenever a subscriber faces a breakdown, their job ticket flashes at the top of the technician queue with comprehensive vehicle history.
+                      Authorized service center foremen gain a filtered queue of priority incident tickets. Whenever a subscriber logs an issue, their job card appears at the top of the technician roster with complete diagnostic codes.
                     </p>
                   </div>
 
-                  <div className="p-4 rounded-xl bg-[#141720] border border-white/[0.04] space-y-2">
+                  <div className="p-4 rounded-xl bg-[#07090e] border border-white/[0.08] space-y-2">
                     <div className="flex items-center gap-2">
                       <span className="h-2 w-2 rounded-full bg-[#00F0FF]" />
                       <h4 className="font-heading font-bold text-white text-xs uppercase tracking-wider">
-                        Accelerated AI &amp; Dealer Assistance
+                        Direct Workshop Bay Allocation
                       </h4>
                     </div>
                     <p className="text-neutral-400 text-xs">
-                      Priority subscribers bypass ordinary queues. AI compute is accelerated, roadside recovery trucks are assigned first, and workshop bays are reserved before arrival — resolving issues substantially faster and elevating customer satisfaction.
+                      Priority tickets receive expedited routing. Roadside recovery units are dispatched immediately, and workshop bays are pre-reserved before arrival, significantly cutting bay wait times.
                     </p>
                   </div>
                 </div>
@@ -770,7 +764,7 @@ export default function Landing() {
 
               <div className="mt-8 pt-4 border-t border-white/[0.06] text-[11px] font-mono text-neutral-400 flex items-center justify-between">
                 <span>Automated Incident Routing</span>
-                <span className="text-[#E63946]">Guaranteed Priority SLA</span>
+                <span className="text-[#e60012]">Guaranteed Priority SLA</span>
               </div>
             </div>
           </div>
@@ -780,7 +774,7 @@ export default function Landing() {
         <div className="relative z-10 flex items-end justify-between font-heading text-xs uppercase tracking-[0.2em] text-neutral-500 pt-12">
           <div className="flex items-center gap-3">
             <span className="font-bold text-neutral-400">.04</span>
-            <span className="hidden sm:inline text-[10px] tracking-[0.25em]">AI TRIAGE &amp; VIP</span>
+            <span className="hidden sm:inline text-[10px] tracking-[0.25em]">AI TRIAGE &amp; SLA</span>
           </div>
           <div
             onClick={() => scrollTo("section-05")}
@@ -816,7 +810,7 @@ export default function Landing() {
           {/* Two Split Portals */}
           <div className="grid gap-8 lg:grid-cols-2">
             {/* Customer Portal Features */}
-            <div className="rounded-2xl bg-[#0e1015] border border-white/[0.08] p-8 sm:p-10 flex flex-col justify-between">
+            <div className="rounded-2xl bg-[#0c111d] border border-white/[0.08] p-8 sm:p-10 flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between pb-6 border-b border-white/[0.06]">
                   <div>
@@ -831,7 +825,7 @@ export default function Landing() {
                 </div>
 
                 <div className="space-y-4 pt-6 text-xs sm:text-sm text-neutral-300 font-light">
-                  <div className="p-4 rounded-xl bg-[#141720]/80 border border-white/[0.04]">
+                  <div className="p-4 rounded-xl bg-[#07090e] border border-white/[0.08]">
                     <h4 className="font-heading font-bold text-white text-sm uppercase">
                       Multimodal Photo &amp; Voice AI Intake
                     </h4>
@@ -840,7 +834,7 @@ export default function Landing() {
                     </p>
                   </div>
 
-                  <div className="p-4 rounded-xl bg-[#141720]/80 border border-white/[0.04]">
+                  <div className="p-4 rounded-xl bg-[#07090e] border border-white/[0.08]">
                     <h4 className="font-heading font-bold text-white text-sm uppercase">
                       Nearby Service Centers &amp; Bay Booking
                     </h4>
@@ -849,16 +843,16 @@ export default function Landing() {
                     </p>
                   </div>
 
-                  <div className="p-4 rounded-xl bg-[#141720]/80 border border-white/[0.04]">
+                  <div className="p-4 rounded-xl bg-[#07090e] border border-white/[0.08]">
                     <h4 className="font-heading font-bold text-white text-sm uppercase">
                       Pulse Priority Subscription Pass
                     </h4>
                     <p className="text-neutral-400 text-xs mt-1">
-                      Enjoy VIP status nationwide. Bypass waiting queues with accelerated AI compute and fast-track dealer assistance.
+                      Priority workshop dispatch and expedited dealer intake across authorized service networks.
                     </p>
                   </div>
 
-                  <div className="p-4 rounded-xl bg-[#141720]/80 border border-white/[0.04]">
+                  <div className="p-4 rounded-xl bg-[#07090e] border border-white/[0.08]">
                     <h4 className="font-heading font-bold text-white text-sm uppercase">
                       Live Roadside GPS &amp; Mechanic Chat
                     </h4>
@@ -882,7 +876,7 @@ export default function Landing() {
             </div>
 
             {/* Dealer Ops Console Features */}
-            <div className="rounded-2xl bg-[#0e1015] border border-white/[0.08] p-8 sm:p-10 flex flex-col justify-between">
+            <div className="rounded-2xl bg-[#0c111d] border border-white/[0.08] p-8 sm:p-10 flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between pb-6 border-b border-white/[0.06]">
                   <div>
@@ -897,16 +891,16 @@ export default function Landing() {
                 </div>
 
                 <div className="space-y-4 pt-6 text-xs sm:text-sm text-neutral-300 font-light">
-                  <div className="p-4 rounded-xl bg-[#141720]/80 border border-white/[0.04]">
+                  <div className="p-4 rounded-xl bg-[#07090e] border border-white/[0.08]">
                     <h4 className="font-heading font-bold text-white text-sm uppercase">
                       Dedicated Priority Customer Roster
                     </h4>
                     <p className="text-neutral-400 text-xs mt-1">
-                      Access an in-detail list of subscribed Priority Customers for immediate diagnostic allocation and VIP workshop attention.
+                      Access an in-detail list of subscribed Priority Customers for immediate diagnostic allocation and expedited bay routing.
                     </p>
                   </div>
 
-                  <div className="p-4 rounded-xl bg-[#141720]/80 border border-white/[0.04]">
+                  <div className="p-4 rounded-xl bg-[#07090e] border border-white/[0.08]">
                     <h4 className="font-heading font-bold text-white text-sm uppercase">
                       AI Triage &amp; Pathway Directive
                     </h4>
@@ -915,7 +909,7 @@ export default function Landing() {
                     </p>
                   </div>
 
-                  <div className="p-4 rounded-xl bg-[#141720]/80 border border-white/[0.04]">
+                  <div className="p-4 rounded-xl bg-[#07090e] border border-white/[0.08]">
                     <h4 className="font-heading font-bold text-white text-sm uppercase">
                       Amazon Connect Cloud Softphone
                     </h4>
@@ -924,7 +918,7 @@ export default function Landing() {
                     </p>
                   </div>
 
-                  <div className="p-4 rounded-xl bg-[#141720]/80 border border-white/[0.04]">
+                  <div className="p-4 rounded-xl bg-[#07090e] border border-white/[0.08]">
                     <h4 className="font-heading font-bold text-white text-sm uppercase">
                       3-Tier Multi-Level OEM Escalation
                     </h4>
@@ -982,16 +976,16 @@ export default function Landing() {
               WHEN DO DRIVERS USE THIS?
             </h2>
             <p className="font-body mt-3 text-sm text-neutral-400 max-w-xl mx-auto font-normal leading-relaxed">
-              Three common situations where AutoCare Pulse replaces chaos with seamless execution.
+              Operational workflows for roadside recovery, diagnostic intake, and priority workshop queueing.
             </p>
           </div>
 
           {/* 3 Practical Use Case Cards */}
           <div className="grid gap-6 md:grid-cols-3">
             {/* Scenario 1 */}
-            <div className="rounded-2xl bg-[#0e1015] border border-white/[0.08] p-7 flex flex-col justify-between hover:border-[#E63946]/30 transition-all">
+            <div className="rounded-2xl bg-[#0c111d] border border-white/[0.08] p-7 flex flex-col justify-between hover:border-[#e60012]/30 transition-all">
               <div>
-                <span className="font-heading text-[10px] font-bold tracking-[0.2em] uppercase text-[#E63946]">
+                <span className="font-heading text-[10px] font-bold tracking-[0.2em] uppercase text-[#e60012]">
                   SCENARIO 01 &bull; HIGH SEVERITY
                 </span>
                 <h3 className="font-heading font-bold text-base sm:text-lg tracking-normal text-white mt-2">
@@ -1000,9 +994,9 @@ export default function Landing() {
                 <p className="mt-3 text-xs text-neutral-300 font-light leading-relaxed">
                   Stranded on the expressway with a blown tyre or sudden engine cutoff. You speak into your phone: <em>"Engine stalled on highway, won't turn over."</em>
                 </p>
-                <div className="mt-4 p-3 rounded-lg bg-[#141720] border border-white/[0.04] text-[11px] text-neutral-300 space-y-1">
+                <div className="mt-4 p-3 rounded-lg bg-[#07090e] border border-white/[0.08] text-[11px] text-neutral-300 space-y-1">
                   <p className="text-[#00F0FF] font-medium">AutoCare Pulse Action:</p>
-                  <p>AI diagnoses non-drivable state &bull; Flags <span className="text-[#E63946] font-semibold">High Priority</span> &bull; Dispatches dealer rescue truck with live GPS arriving in 22 mins.</p>
+                  <p>AI diagnoses non-drivable state &bull; Flags <span className="text-[#e60012] font-semibold">High Priority</span> &bull; Dispatches dealer rescue truck with live GPS arriving in 22 mins.</p>
                 </div>
               </div>
               <div className="mt-6 pt-4 border-t border-white/[0.06] text-[11px] font-mono text-neutral-400">
@@ -1011,7 +1005,7 @@ export default function Landing() {
             </div>
 
             {/* Scenario 2 */}
-            <div className="rounded-2xl bg-[#0e1015] border border-white/[0.08] p-7 flex flex-col justify-between hover:border-[#00F0FF]/30 transition-all">
+            <div className="rounded-2xl bg-[#0c111d] border border-white/[0.08] p-7 flex flex-col justify-between hover:border-[#00F0FF]/30 transition-all">
               <div>
                 <span className="font-heading text-[10px] font-bold tracking-[0.2em] uppercase text-[#00F0FF]">
                   SCENARIO 02 &bull; DIAGNOSTIC
@@ -1022,7 +1016,7 @@ export default function Landing() {
                 <p className="mt-3 text-xs text-neutral-300 font-light leading-relaxed">
                   Your ABS or Check Engine indicator lights up, accompanied by an unusual grinding brake noise. You record a voice note explaining the symptom.
                 </p>
-                <div className="mt-4 p-3 rounded-lg bg-[#141720] border border-white/[0.04] text-[11px] text-neutral-300 space-y-1">
+                <div className="mt-4 p-3 rounded-lg bg-[#07090e] border border-white/[0.08] text-[11px] text-neutral-300 space-y-1">
                   <p className="text-[#00F0FF] font-medium">AutoCare Pulse Action:</p>
                   <p>AI confirms car is safely drivable &bull; Suggests all nearby authorized service centers with live queue times &bull; Books express bay slot for tomorrow 10:00 AM.</p>
                 </div>
@@ -1033,10 +1027,10 @@ export default function Landing() {
             </div>
 
             {/* Scenario 3 */}
-            <div className="rounded-2xl bg-[#0e1015] border border-white/[0.08] p-7 flex flex-col justify-between hover:border-[#E63946]/30 transition-all">
+            <div className="rounded-2xl bg-[#0c111d] border border-white/[0.08] p-7 flex flex-col justify-between hover:border-[#e60012]/30 transition-all">
               <div>
-                <span className="font-heading text-[10px] font-bold tracking-[0.2em] uppercase text-[#E63946]">
-                  SCENARIO 03 &bull; VIP PRIORITY TIER
+                <span className="font-heading text-[10px] font-bold tracking-[0.2em] uppercase text-[#e60012]">
+                  SCENARIO 03 &bull; EXPEDITED INTAKE
                 </span>
                 <h3 className="font-heading font-bold text-base sm:text-lg tracking-normal text-white mt-2">
                   Priority Customer Damage Intake
@@ -1044,13 +1038,13 @@ export default function Landing() {
                 <p className="mt-3 text-xs text-neutral-300 font-light leading-relaxed">
                   A subscribed Priority Member experiences bumper or panel damage in a parking scrape. They snap two photos directly in the app.
                 </p>
-                <div className="mt-4 p-3 rounded-lg bg-[#141720] border border-white/[0.04] text-[11px] text-neutral-300 space-y-1">
+                <div className="mt-4 p-3 rounded-lg bg-[#07090e] border border-white/[0.08] text-[11px] text-neutral-300 space-y-1">
                   <p className="text-[#00F0FF] font-medium">AutoCare Pulse Action:</p>
-                  <p>Dealer console highlights <span className="text-[#E63946] font-semibold">Priority Customer Alert</span> &bull; Parts staged immediately &bull; Vehicle enters express bay ahead of queue.</p>
+                  <p>Dealer console highlights <span className="text-[#e60012] font-semibold">Priority Customer Alert</span> &bull; Parts staged immediately &bull; Vehicle enters express bay ahead of queue.</p>
                 </div>
               </div>
               <div className="mt-6 pt-4 border-t border-white/[0.06] text-[11px] font-mono text-neutral-400">
-                Resolution: Fast-Track VIP Workshop Repair
+                Resolution: Fast-Track Workshop Bay Allocation
               </div>
             </div>
           </div>
@@ -1105,46 +1099,46 @@ export default function Landing() {
 
               {/* Operational Metrics Grid */}
               <div className="grid grid-cols-2 gap-4 pt-2">
-                <div className="p-4 rounded-xl bg-[#0e1015] border border-white/[0.06]">
+                <div className="p-4 rounded-xl bg-[#0c111d] border border-white/[0.08]">
                   <p className="font-heading text-[10px] font-bold tracking-[0.2em] uppercase text-neutral-400">
                     DIAGNOSTIC LATENCY
                   </p>
                   <p className="font-heading text-xl font-bold text-[#00F0FF] mt-1">
-                    &lt; 1.2s Triage
+                    &lt; 2s Triage
                   </p>
-                  <p className="text-[11px] text-neutral-400 mt-0.5">Whisper + Vision GPT-5.4</p>
+                  <p className="text-[11px] text-neutral-400 mt-0.5">Automated visual &amp; audio intake</p>
                 </div>
-                <div className="p-4 rounded-xl bg-[#0e1015] border border-white/[0.06]">
+                <div className="p-4 rounded-xl bg-[#0c111d] border border-white/[0.08]">
                   <p className="font-heading text-[10px] font-bold tracking-[0.2em] uppercase text-neutral-400">
-                    NATIONWIDE SCALE
+                    DEALERSHIP INTAKE
                   </p>
-                  <p className="font-heading text-xl font-bold text-[#E63946] mt-1">
-                    Lakhs &amp; Crores
+                  <p className="font-heading text-xl font-bold text-[#e60012] mt-1">
+                    Multi-Branch Sync
                   </p>
-                  <p className="text-[11px] text-neutral-400 mt-0.5">Distributed VIP telematics</p>
+                  <p className="text-[11px] text-neutral-400 mt-0.5">Centralized foreman ticket queue</p>
                 </div>
-                <div className="p-4 rounded-xl bg-[#0e1015] border border-white/[0.06]">
+                <div className="p-4 rounded-xl bg-[#0c111d] border border-white/[0.08]">
                   <p className="font-heading text-[10px] font-bold tracking-[0.2em] uppercase text-neutral-400">
                     WORKSHOP DISPATCH
                   </p>
                   <p className="font-heading text-xl font-bold text-[#00F0FF] mt-1">
                     Direct Bay Queue
                   </p>
-                  <p className="text-[11px] text-neutral-400 mt-0.5">Live bay position &amp; ETA</p>
+                  <p className="text-[11px] text-neutral-400 mt-0.5">Technician schedules &amp; bay ETA</p>
                 </div>
-                <div className="p-4 rounded-xl bg-[#0e1015] border border-white/[0.06]">
+                <div className="p-4 rounded-xl bg-[#0c111d] border border-white/[0.08]">
                   <p className="font-heading text-[10px] font-bold tracking-[0.2em] uppercase text-neutral-400">
                     EMERGENCY SLA
                   </p>
-                  <p className="font-heading text-xl font-bold text-[#E63946] mt-1">
+                  <p className="font-heading text-xl font-bold text-[#e60012] mt-1">
                     4-Hour Window
                   </p>
-                  <p className="text-[11px] text-neutral-400 mt-0.5">Priority fast-track &amp; escalation</p>
+                  <p className="text-[11px] text-neutral-400 mt-0.5">Automated escalation countdown</p>
                 </div>
               </div>
 
               {/* Quick Customer Access Bar */}
-              <div className="p-5 rounded-xl border border-white/[0.1] bg-[#0e1015]/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="p-5 rounded-xl border border-white/[0.1] bg-[#0c111d]/90 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
                   <p className="font-heading text-xs font-bold uppercase tracking-wider text-white">
                     Need Emergency Vehicle Support?
@@ -1164,7 +1158,7 @@ export default function Landing() {
 
             {/* Right Column: Recessed Dark Form matching Screen 3 (Contact Form) */}
             <div className="lg:col-span-6">
-              <div className="rounded-2xl bg-[#0e1015] border border-white/[0.1] p-8 sm:p-10 shadow-2xl relative">
+              <div className="rounded-2xl bg-[#0c111d] border border-white/[0.1] p-8 sm:p-10 shadow-2xl relative">
                 <div className="mb-6">
                   <p className="font-heading text-xs font-semibold tracking-[0.25em] uppercase text-neutral-400 mb-1">
                     WORKSHOP ACCESS
@@ -1189,7 +1183,7 @@ export default function Landing() {
                       onChange={(e) => setEmail(e.target.value)}
                       required
                       placeholder="service.manager@dealership.com"
-                      className="bg-[#141720] border-white/10 text-white placeholder:text-neutral-600 focus:border-white/40 h-12 rounded-xl text-sm"
+                      className="bg-[#07090e] border-white/10 text-white placeholder:text-neutral-600 focus:border-white/40 h-12 rounded-xl text-sm"
                     />
                   </div>
 
@@ -1204,7 +1198,7 @@ export default function Landing() {
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••••••"
                       required
-                      className="bg-[#141720] border-white/10 text-white placeholder:text-neutral-600 focus:border-white/40 h-12 rounded-xl text-sm"
+                      className="bg-[#07090e] border-white/10 text-white placeholder:text-neutral-600 focus:border-white/40 h-12 rounded-xl text-sm"
                     />
                   </div>
 
@@ -1231,7 +1225,7 @@ export default function Landing() {
           </div>
 
           <div className="flex items-center gap-2 text-[10px] text-neutral-400 font-mono tracking-widest">
-            <div className="h-4 w-4 grid place-items-center rounded bg-[#E63946]">
+            <div className="h-4 w-4 grid place-items-center rounded bg-[#e60012]">
               <Activity className="h-2.5 w-2.5 text-white" strokeWidth={2.5} />
             </div>
             <span>AUTOCARE<span className="text-[#00F0FF]">PULSE</span> &bull; TELEMETRY PLATFORM</span>
@@ -1264,35 +1258,6 @@ export default function Landing() {
       {/* Floating Mascot RAG Chatboard */}
       <RagChatbot />
 
-      {/* Interactive Live Font Preview Switcher */}
-      <div
-        data-testid="font-pair-preview-switcher"
-        className="fixed bottom-4 left-4 z-40 hidden sm:flex items-center gap-1.5 p-1.5 rounded-full bg-[#0c111d]/90 backdrop-blur-md border border-white/10 shadow-2xl text-[11px]"
-      >
-        <span className="px-2 text-neutral-400 font-medium select-none flex items-center gap-1">
-          <Type className="h-3.5 w-3.5 text-[#00F0FF]" /> Font Set:
-        </span>
-        <button
-          onClick={() => setActiveFontSet("sora")}
-          className={`px-3 py-1 rounded-full transition-all cursor-pointer ${
-            activeFontSet === "sora"
-              ? "bg-[#00F0FF]/20 text-[#00F0FF] border border-[#00F0FF]/40 font-semibold"
-              : "text-neutral-400 hover:text-white"
-          }`}
-        >
-          Set 1: Sora + DM Sans (Active)
-        </button>
-        <button
-          onClick={() => setActiveFontSet("urbanist")}
-          className={`px-3 py-1 rounded-full transition-all cursor-pointer ${
-            activeFontSet === "urbanist"
-              ? "bg-[#00F0FF]/20 text-[#00F0FF] border border-[#00F0FF]/40 font-semibold"
-              : "text-neutral-400 hover:text-white"
-          }`}
-        >
-          Set 2: Urbanist + Jakarta
-        </button>
-      </div>
 
       {/* Interactive Modals */}
       <DemoRequestModal isOpen={demoOpen} onClose={() => setDemoOpen(false)} />

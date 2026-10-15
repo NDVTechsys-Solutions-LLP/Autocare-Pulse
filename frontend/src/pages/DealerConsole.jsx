@@ -81,15 +81,15 @@ export default function DealerConsole() {
   };
 
   return (
-    <div className="min-h-screen bg-[#090a0d] text-[#e5e7eb] font-body selection:bg-white/20 selection:text-white">
+    <div className="min-h-screen bg-[#07090e] text-[#e5e7eb] font-body selection:bg-white/20 selection:text-white">
       {/* Header */}
-      <header className="sticky top-0 z-40 flex items-center justify-between border-b border-white/[0.06] bg-[#090a0d]/90 px-6 py-5 backdrop-blur-md md:px-12">
+      <header className="sticky top-0 z-40 flex items-center justify-between border-b border-white/[0.06] bg-[#07090e]/90 px-6 py-5 backdrop-blur-md md:px-12">
         <div className="flex items-center gap-4">
           <div
             onClick={() => navigate("/")}
             className="cursor-pointer flex items-center gap-3 select-none hover:opacity-90 transition-opacity"
           >
-            <div className="grid h-8 w-8 place-items-center rounded-xl bg-[#E63946] shadow-[0_0_15px_rgba(230,57,70,0.45)] shrink-0">
+            <div className="grid h-8 w-8 place-items-center rounded-xl bg-[#e60012] shrink-0">
               <Activity className="h-4 w-4 text-white" strokeWidth={2.5} />
             </div>
             <span className="font-heading font-black text-lg tracking-tight text-white uppercase">
@@ -161,12 +161,12 @@ export default function DealerConsole() {
             <div className="flex items-center gap-2">
               <span className="font-mono text-xs text-neutral-400 uppercase tracking-wider">Priority:</span>
               <Select value={filter} onValueChange={setFilter}>
-                <SelectTrigger data-testid="priority-filter" className="w-40 bg-[#141720] border-white/10 text-white rounded-xl text-xs font-heading font-semibold uppercase tracking-wider h-10">
+                <SelectTrigger data-testid="priority-filter" className="w-40 bg-[#07090e] border-white/10 text-white rounded-xl text-xs font-heading font-semibold uppercase tracking-wider h-10">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-[#0e1015] border border-white/10 text-white rounded-xl">
+                <SelectContent className="bg-[#0c111d] border border-white/10 text-white rounded-xl">
                   <SelectItem value="all" className="text-xs font-heading uppercase tracking-wider text-white focus:bg-white/10 focus:text-white cursor-pointer">All Priorities</SelectItem>
-                  <SelectItem value="High" className="text-xs font-heading uppercase tracking-wider text-[#E63946] focus:bg-white/10 focus:text-[#E63946] cursor-pointer">High Priority</SelectItem>
+                  <SelectItem value="High" className="text-xs font-heading uppercase tracking-wider text-[#e60012] focus:bg-white/10 focus:text-[#e60012] cursor-pointer">High Priority</SelectItem>
                   <SelectItem value="Medium" className="text-xs font-heading uppercase tracking-wider text-[#00F0FF] focus:bg-white/10 focus:text-[#00F0FF] cursor-pointer">Medium Priority</SelectItem>
                   <SelectItem value="Low" className="text-xs font-heading uppercase tracking-wider text-neutral-400 focus:bg-white/10 focus:text-white cursor-pointer">Low Priority</SelectItem>
                 </SelectContent>
@@ -215,7 +215,7 @@ export default function DealerConsole() {
               </div>
               <div className="ac-scroll grid max-h-[75vh] gap-3.5 overflow-y-auto pr-1">
                 {filtered.length === 0 && (
-                  <div className="rounded-2xl border border-dashed border-white/10 bg-[#0e1015]/40 p-12 text-center font-mono text-xs text-neutral-500">
+                  <div className="rounded-2xl border border-dashed border-white/10 bg-[#0c111d]/40 p-12 text-center font-mono text-xs text-neutral-500">
                     No incidents matching current priority filter.
                   </div>
                 )}
@@ -227,9 +227,9 @@ export default function DealerConsole() {
                     transition={{ delay: i * 0.03 }}
                     data-testid={`queue-card-${inc.id}`}
                     onClick={() => setSelected(inc)}
-                    className={`group rounded-2xl bg-[#0e1015] border p-5 text-left transition-all duration-300 flex flex-col justify-between ${
+                    className={`group rounded-2xl bg-[#0c111d] border p-5 text-left transition-all duration-300 flex flex-col justify-between ${
                       inc.sla_breached
-                        ? "border-[#E63946]/60 shadow-[0_0_20px_rgba(230,57,70,0.18)]"
+                        ? "border-[#e60012]/60"
                         : "border-white/[0.08] hover:border-white/20"
                     }`}
                   >
@@ -240,7 +240,7 @@ export default function DealerConsole() {
                         </span>
                         <PriorityBadge priority={inc.priority} testid={`q-priority-${inc.id}`} />
                         {inc.escalation_level > 0 && (
-                          <span className="rounded bg-[#E63946]/15 border border-[#E63946]/30 px-2 py-0.5 font-mono text-[10px] uppercase font-bold text-[#E63946]">
+                          <span className="rounded bg-[#e60012]/15 border border-[#e60012]/30 px-2 py-0.5 font-mono text-[10px] uppercase font-bold text-[#e60012]">
                             L{inc.escalation_level} escalated
                           </span>
                         )}
@@ -266,7 +266,7 @@ export default function DealerConsole() {
                     <div className="mt-4 pt-3 border-t border-white/[0.06] flex items-center justify-between text-[11px] font-mono">
                       <span
                         className={`flex items-center gap-1.5 font-mono text-[11px] font-medium ${
-                          inc.sla_breached ? "text-[#E63946]" : "text-neutral-400"
+                          inc.sla_breached ? "text-[#e60012]" : "text-neutral-400"
                         }`}
                       >
                         <Clock className="h-3 w-3" />
@@ -312,11 +312,11 @@ export default function DealerConsole() {
 function KpiCharts({ kpis, incidents }) {
   const catData = Object.entries(kpis.by_category).map(([name, value]) => ({ name, value }));
   const prioData = Object.entries(kpis.by_priority).map(([name, value]) => ({ name, value }));
-  const COLORS = { High: "#E63946", Medium: "#FF9F1C", Low: "#10B981" };
+  const COLORS = { High: "#e60012", Medium: "#FF9F1C", Low: "#10B981" };
   const breached = incidents.filter((i) => i.sla_breached);
   return (
     <div className="grid gap-6 lg:grid-cols-2">
-      <div className="rounded-2xl border border-white/[0.08] bg-[#0e1015] p-6 hover:border-white/15 transition-all">
+      <div className="rounded-2xl border border-white/[0.08] bg-[#0c111d] p-6 hover:border-white/15 transition-all">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-heading text-lg font-bold uppercase tracking-tight text-white">Incidents by Category</h3>
           <span className="font-mono text-[10px] uppercase text-neutral-400">Telemetry Breakdown</span>
@@ -331,7 +331,7 @@ function KpiCharts({ kpis, incidents }) {
           </BarChart>
         </ResponsiveContainer>
       </div>
-      <div className="rounded-2xl border border-white/[0.08] bg-[#0e1015] p-6 hover:border-white/15 transition-all">
+      <div className="rounded-2xl border border-white/[0.08] bg-[#0c111d] p-6 hover:border-white/15 transition-all">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-heading text-lg font-bold uppercase tracking-tight text-white">Priority Mix</h3>
           <span className="font-mono text-[10px] uppercase text-neutral-400">Severity Distribution</span>
@@ -352,7 +352,7 @@ function KpiCharts({ kpis, incidents }) {
           ))}
         </div>
       </div>
-      <div className="rounded-2xl border border-white/[0.08] bg-[#0e1015] p-6 lg:col-span-2 hover:border-white/15 transition-all">
+      <div className="rounded-2xl border border-white/[0.08] bg-[#0c111d] p-6 lg:col-span-2 hover:border-white/15 transition-all">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-[#00F0FF]" />
@@ -363,7 +363,7 @@ function KpiCharts({ kpis, incidents }) {
         <div className="mb-5 flex flex-wrap items-center gap-2">
           {["Dealer Service Manager", "OEM Regional Lead", "OEM Quality Head"].map((lvl, i) => (
             <React.Fragment key={lvl}>
-              <span className="rounded-full border border-white/10 bg-[#141720] px-3.5 py-1 font-mono text-xs uppercase tracking-wider text-white">
+              <span className="rounded-full border border-white/10 bg-[#07090e] px-3.5 py-1 font-mono text-xs uppercase tracking-wider text-white">
                 L{i + 1} · {lvl}
               </span>
               {i < 2 && <ArrowUpRight className="h-4 w-4 text-neutral-500" />}
@@ -377,12 +377,12 @@ function KpiCharts({ kpis, incidents }) {
         ) : (
           <div className="space-y-2">
             {breached.map((b) => (
-              <div key={b.id} className="flex items-center justify-between rounded-xl border border-[#E63946]/30 bg-[#E63946]/10 p-3.5">
+              <div key={b.id} className="flex items-center justify-between rounded-xl border border-[#e60012]/30 bg-[#e60012]/10 p-3.5">
                 <span className="text-xs text-neutral-200">
-                  <span className="font-mono text-[#E63946] font-bold mr-2">{b.id}</span>
+                  <span className="font-mono text-[#e60012] font-bold mr-2">{b.id}</span>
                   {b.title} ({b.customer_name})
                 </span>
-                <span className="font-mono text-xs text-[#E63946] font-bold">Breached · Level {b.escalation_level}</span>
+                <span className="font-mono text-xs text-[#e60012] font-bold">Breached · Level {b.escalation_level}</span>
               </div>
             ))}
           </div>
@@ -396,7 +396,7 @@ function DealerDetail({ incident, team, onClose, onUpdate, onEscalate, onChat, o
   if (!incident) return null;
   return (
     <Dialog open={!!incident} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto border-white/10 bg-[#0e1015] text-white sm:max-w-xl p-6 sm:p-8 rounded-2xl shadow-2xl">
+      <DialogContent className="max-h-[90vh] overflow-y-auto border-white/10 bg-[#0c111d] text-white sm:max-w-xl p-6 sm:p-8 rounded-2xl shadow-2xl">
         <DialogHeader className="space-y-3">
           <div className="flex items-center justify-between pb-2 border-b border-white/[0.08] pr-8">
             <button
@@ -458,7 +458,7 @@ function DealerDetail({ incident, team, onClose, onUpdate, onEscalate, onChat, o
                     className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-heading font-semibold uppercase tracking-wider ${
                       incident.is_solvable
                         ? "bg-[#00F0FF]/15 text-[#00F0FF] border border-[#00F0FF]/30"
-                        : "bg-[#E63946]/15 text-[#E63946] border border-[#E63946]/30"
+                        : "bg-[#e60012]/15 text-[#e60012] border border-[#e60012]/30"
                     }`}
                   >
                     {incident.is_solvable ? "SOLVABLE · DIY RESOLUTION" : "DEALER INTAKE REQUIRED"}
@@ -471,7 +471,7 @@ function DealerDetail({ incident, team, onClose, onUpdate, onEscalate, onChat, o
             </div>
           )}
 
-          <div className="rounded-xl border border-white/[0.08] bg-[#141720] p-4">
+          <div className="rounded-xl border border-white/[0.08] bg-[#07090e] p-4">
             <p className="mb-2 font-heading text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400">
               Resolution Path · {incident.priority} priority
             </p>
@@ -495,7 +495,7 @@ function DealerDetail({ incident, team, onClose, onUpdate, onEscalate, onChat, o
               <Button
                 data-testid="dispatch-rsa-btn"
                 onClick={() => onDispatch(incident.id, { mode: "rsa", eta_min: 45 })}
-                className="w-full rounded-full bg-[#E63946] hover:bg-[#d02e3b] font-heading font-bold text-xs uppercase tracking-wider text-white py-3 shadow-[0_0_15px_rgba(230,57,70,0.3)]"
+                className="w-full rounded-full bg-[#e60012] hover:bg-[#c4000f] font-heading font-bold text-xs uppercase tracking-wider text-white py-3 shadow-sm"
               >
                 <Truck className="mr-2 h-4 w-4" />
                 Dispatch Roadside Assistance
@@ -514,7 +514,7 @@ function DealerDetail({ incident, team, onClose, onUpdate, onEscalate, onChat, o
                 <Button
                   data-testid="book-slot-btn"
                   onClick={() => onDispatch(incident.id, { mode: "slot", remote_failed: incident.resolution_path === "remote" })}
-                  className="rounded-full bg-[#00F0FF] hover:bg-[#00d0e0] font-heading font-bold text-xs uppercase tracking-wider text-black shadow-[0_0_15px_rgba(0,240,255,0.25)]"
+                  className="rounded-full bg-[#00F0FF] hover:bg-[#00d0e0] font-heading font-bold text-xs uppercase tracking-wider text-black shadow-sm"
                 >
                   <CalendarClock className="mr-1.5 h-3.5 w-3.5" />
                   {incident.resolution_path === "remote" ? "Remote Failed → Slot" : "Book Service Slot"}
@@ -577,7 +577,7 @@ function DealerDetail({ incident, team, onClose, onUpdate, onEscalate, onChat, o
               data-testid="escalate-btn"
               onClick={() => onEscalate(incident.id)}
               variant="outline"
-              className="flex-1 rounded-full border border-[#E63946]/40 text-[#E63946] hover:bg-[#E63946]/10 text-xs font-heading font-semibold uppercase tracking-wider"
+              className="flex-1 rounded-full border border-[#e60012]/40 text-[#e60012] hover:bg-[#e60012]/10 text-xs font-heading font-semibold uppercase tracking-wider"
             >
               <ArrowUpRight className="mr-1.5 h-3.5 w-3.5" />
               Escalate {incident.escalation_level > 0 ? `(L${incident.escalation_level})` : ""}

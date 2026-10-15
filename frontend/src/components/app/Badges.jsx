@@ -9,7 +9,7 @@ const STATUS_MAP = {
 };
 
 const PRIORITY_MAP = {
-  High: "bg-[#E63946]/15 text-[#E63946] border-[#E63946]/40",
+  High: "bg-[#e60012]/15 text-[#e60012] border-[#e60012]/40",
   Medium: "bg-[#00F0FF]/10 text-[#00F0FF] border-[#00F0FF]/30",
   Low: "bg-white/[0.04] text-neutral-400 border-white/10",
 };

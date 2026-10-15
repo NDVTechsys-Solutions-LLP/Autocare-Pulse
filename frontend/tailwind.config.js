@@ -13,8 +13,6 @@ module.exports = {
         heading: ['Sora', 'sans-serif'],
         subheading: ['Sora', 'sans-serif'],
         body: ['DM Sans', 'sans-serif'],
-        urbanist: ['Urbanist', 'sans-serif'],
-        jakarta: ['Plus Jakarta Sans', 'sans-serif'],
         mono: ['JetBrains Mono', 'monospace'],
       },
       borderRadius: {

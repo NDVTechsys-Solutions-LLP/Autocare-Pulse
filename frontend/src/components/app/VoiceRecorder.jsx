@@ -172,20 +172,20 @@ export default function VoiceRecorder({ onTranscript }) {
   };
 
   return (
-    <div className="flex flex-col items-center gap-4 rounded-2xl border border-white/10 bg-[#141720]/80 p-6 text-center transition-all duration-300">
+    <div className="flex flex-col items-center gap-4 rounded-2xl border border-white/10 bg-[#07090e] p-6 text-center transition-all duration-300">
       <div className="relative">
         {recording && (
-          <span className="absolute -inset-3 rounded-full bg-[#E63946]/30 animate-ping pointer-events-none" />
+          <span className="absolute -inset-1.5 rounded-full border border-[#e60012]/60 pointer-events-none" />
         )}
         <button
           type="button"
           data-testid="voice-record-btn"
           onClick={recording ? stop : start}
           disabled={processing}
-          className={`relative grid h-16 w-16 place-items-center rounded-full transition-all duration-300 shadow-xl ${
+          className={`relative grid h-16 w-16 place-items-center rounded-full transition-all duration-300 ${
             recording
-              ? "bg-[#E63946] text-white shadow-[0_0_25px_rgba(230,57,70,0.6)]"
-              : "bg-white text-black hover:bg-neutral-200 shadow-white/5"
+              ? "bg-[#e60012] text-white border border-white/20 shadow-md"
+              : "bg-white text-black hover:bg-neutral-200 shadow-sm"
           } disabled:opacity-50`}
         >
           {processing ? (

@@ -132,7 +132,7 @@ export default function AutoCareFooter({
                 <li>
                   <button
                     onClick={onOpenDemo}
-                    className="text-[#e60012] hover:text-red-400 font-heading font-semibold text-xs tracking-wider uppercase transition-colors cursor-pointer text-left"
+                    className="text-[#00F0FF] hover:text-cyan-300 font-heading font-semibold text-xs tracking-wider uppercase transition-colors cursor-pointer text-left"
                   >
                     Request Demo
                   </button>
@@ -240,59 +240,79 @@ export default function AutoCareFooter({
         {/* Divider Line */}
         <div className="border-t border-white/10 my-8" />
 
-        {/* RECOGNISED & SUPPORTED BY Section - Built with AutoCare Pulse's Theme & Typography */}
+        {/* RECOGNISED & SUPPORTED BY Section - Matches Reference Image Cards & Styling */}
         <div className="pb-6">
-          <p className="font-heading text-xs font-semibold tracking-[0.25em] uppercase text-neutral-400 mb-5">
+          <p className="font-heading text-xs font-semibold tracking-[0.2em] uppercase text-[#7a8ba3] mb-5">
             RECOGNISED &amp; SUPPORTED BY
           </p>
 
-          <div className="flex flex-wrap items-start gap-6 sm:gap-8">
+          <div className="flex flex-wrap items-start gap-5 sm:gap-7">
             {/* Card 1: MCA REGISTERED */}
             <div className="flex flex-col items-center">
-              <div className="bg-[#0e1015] border border-white/10 hover:border-white/20 transition-all rounded-xl px-5 py-4 flex items-center justify-center gap-3 w-48 h-20 select-none">
-                {/* Ashoka Pillar / Govt Emblem SVG in AutoCare Pulse Electric Cyan */}
+              <div className="bg-white rounded-[24px] sm:rounded-[28px] px-6 sm:px-7 py-4 sm:py-5 flex items-center justify-center gap-4 w-[260px] sm:w-[290px] h-[86px] sm:h-[92px] shadow-lg shadow-black/40 select-none transition-transform hover:-translate-y-0.5">
+                {/* MCA Ashoka Dome Silhouette */}
                 <svg
-                  className="w-8 h-8 text-[#00F0FF] shrink-0"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
+                  className="w-9 h-9 shrink-0 text-[#1e293b]"
+                  viewBox="0 0 40 40"
+                  fill="none"
                   aria-hidden="true"
                 >
-                  <path d="M12 2C9.5 2 7.5 3.8 7.5 6c0 1.2.5 2.3 1.3 3H7c-.6 0-1 .4-1 1v1h12v-1c0-.6-.4-1-1-1h-1.8c.8-.7 1.3-1.8 1.3-3 0-2.2-2-4-4.5-4zm-3 10v5h1.5v-5H9zm3.25 0v5h1.5v-5h-1.5zm3.25 0v5H17v-5h-1.5zM6 18v2h12v-2H6zm-1 3v1h14v-1H5z" />
+                  <path
+                    d="M12 16C12 11.5817 15.5817 8 20 8C24.4183 8 28 11.5817 28 16H12Z"
+                    fill="#1e293b"
+                  />
+                  <rect x="10" y="17" width="20" height="2.5" rx="0.5" fill="#1e293b" />
+                  <rect x="13.5" y="20.5" width="3" height="9" fill="#1e293b" />
+                  <rect x="23.5" y="20.5" width="3" height="9" fill="#1e293b" />
+                  <rect x="10" y="30.5" width="20" height="3" rx="0.5" fill="#1e293b" />
                 </svg>
-                <div className="flex flex-col text-left font-heading font-black text-white text-xs uppercase tracking-wider leading-tight">
+                <div className="flex flex-col text-left font-heading font-black text-[#0f172a] text-[12px] sm:text-[13px] uppercase tracking-tight leading-[1.15]">
                   <span>MINISTRY OF</span>
                   <span>CORPORATE</span>
                   <span>AFFAIRS</span>
                 </div>
               </div>
-              <span className="font-heading text-xs font-semibold tracking-[0.2em] uppercase text-neutral-400 mt-2 text-center">
+              <span className="font-heading text-xs font-semibold tracking-[0.18em] uppercase text-[#7a8ba3] mt-2.5 text-center">
                 MCA REGISTERED
               </span>
             </div>
 
             {/* Card 2: STARTUP INDIA */}
             <div className="flex flex-col items-center">
-              <div className="bg-[#0e1015] border border-white/10 hover:border-white/20 transition-all rounded-xl px-5 py-4 flex items-center justify-center gap-3 w-48 h-20 select-none">
-                {/* Startup India Indian Flag Badge in Clean Dark Container */}
-                <div className="w-7 h-7 rounded-full overflow-hidden border border-white/20 shrink-0 flex flex-col shadow-inner">
-                  <div className="h-1/3 bg-[#FF9933]" />
-                  <div className="h-1/3 bg-white flex items-center justify-center relative">
-                    <div className="w-1.5 h-1.5 rounded-full border border-[#000080] flex items-center justify-center">
-                      <div className="w-0.5 h-0.5 rounded-full bg-[#000080]" />
-                    </div>
-                  </div>
-                  <div className="h-1/3 bg-[#138808]" />
+              <div className="bg-white rounded-[24px] sm:rounded-[28px] px-6 sm:px-7 py-4 sm:py-5 flex items-center justify-center gap-4 w-[260px] sm:w-[290px] h-[86px] sm:h-[92px] shadow-lg shadow-black/40 select-none transition-transform hover:-translate-y-0.5">
+                {/* Startup India Indian Flag Badge in Soft Cream Circle */}
+                <div className="w-11 h-11 rounded-full bg-[#FFF5EB] flex items-center justify-center p-2 shrink-0 shadow-inner">
+                  <svg className="w-6 h-6" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+                    {/* Flagpole */}
+                    <rect x="7" y="5" width="1.5" height="22" rx="0.75" fill="#94A3B8" />
+                    {/* Tricolor Waving Flag */}
+                    <path
+                      d="M8.5 6.5C12 5.5 15 7.5 18.5 6.5C22 5.5 24 6.5 25.5 7V12C24 11.5 22 10.5 18.5 11.5C15 12.5 12 10.5 8.5 11.5V6.5Z"
+                      fill="#FF9933"
+                    />
+                    <path
+                      d="M8.5 11.5C12 10.5 15 12.5 18.5 11.5C22 10.5 24 11.5 25.5 12V16.5C24 16 22 15 18.5 16C15 17 12 15 8.5 16V11.5Z"
+                      fill="#FFFFFF"
+                    />
+                    <path
+                      d="M8.5 16C12 15 15 17 18.5 16C22 15 24 16 25.5 16.5V21C24 20.5 22 19.5 18.5 20.5C15 21.5 12 19.5 8.5 20.5V16Z"
+                      fill="#138808"
+                    />
+                    {/* Ashoka Chakra */}
+                    <circle cx="17" cy="14" r="1.8" stroke="#000080" strokeWidth="0.6" fill="none" />
+                    <circle cx="17" cy="14" r="0.5" fill="#000080" />
+                  </svg>
                 </div>
                 <div className="flex flex-col text-left">
-                  <span className="font-heading font-black text-white text-xs uppercase tracking-wider leading-tight">
+                  <span className="font-heading font-black text-[#0a192f] text-sm sm:text-[15px] tracking-tight leading-tight">
                     #STARTUPINDIA
                   </span>
-                  <span className="font-body text-xs text-[#00F0FF] font-medium leading-tight mt-0.5">
+                  <span className="font-body text-[#475569] text-xs sm:text-[12px] font-medium leading-tight mt-0.5">
                     DPIIT Recognised
                   </span>
                 </div>
               </div>
-              <span className="font-heading text-xs font-semibold tracking-[0.2em] uppercase text-neutral-400 mt-2 text-center">
+              <span className="font-heading text-xs font-semibold tracking-[0.18em] uppercase text-[#7a8ba3] mt-2.5 text-center">
                 STARTUP INDIA
               </span>
             </div>

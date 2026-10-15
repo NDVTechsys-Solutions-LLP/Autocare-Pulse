@@ -128,6 +128,22 @@ let webpackConfig = {
         webpackConfig.plugins.push(healthPluginInstance);
       }
 
+      // Ignore source map warnings from third-party vendor packages (e.g. amazon-connect-streams)
+      webpackConfig.ignoreWarnings = [
+        ...(webpackConfig.ignoreWarnings || []),
+        /Failed to parse source map/,
+        /amazon-connect-streams/,
+        function ignoreSourcemapWarnings(warning) {
+          return (
+            warning.module &&
+            warning.module.resource &&
+            warning.module.resource.includes('node_modules') &&
+            warning.details &&
+            warning.details.includes('source-map-loader')
+          );
+        },
+      ];
+
       // Overlay's HTML injection + compile-error capture; self-gates on mode !== development.
       if (emergentOverlay) {
         webpackConfig.plugins.push(emergentOverlay.webpackPlugin);

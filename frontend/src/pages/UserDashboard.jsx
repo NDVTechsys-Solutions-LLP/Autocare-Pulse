@@ -68,15 +68,15 @@ export default function UserDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-[#090a0d] text-[#e5e7eb] font-body selection:bg-white/20 selection:text-white">
+    <div className="min-h-screen bg-[#07090e] text-[#e5e7eb] font-body selection:bg-white/20 selection:text-white">
       {/* Header */}
-      <header className="sticky top-0 z-40 flex items-center justify-between border-b border-white/[0.06] bg-[#090a0d]/90 px-6 py-5 backdrop-blur-md md:px-12">
+      <header className="sticky top-0 z-40 flex items-center justify-between border-b border-white/[0.06] bg-[#07090e]/90 px-6 py-5 backdrop-blur-md md:px-12">
         <div className="flex items-center gap-4">
           <div
             onClick={() => navigate("/")}
             className="cursor-pointer flex items-center gap-3 select-none hover:opacity-90 transition-opacity"
           >
-            <div className="grid h-8 w-8 place-items-center rounded-xl bg-[#E63946] shadow-[0_0_15px_rgba(230,57,70,0.45)] shrink-0">
+            <div className="grid h-8 w-8 place-items-center rounded-xl bg-[#e60012] shrink-0">
               <Activity className="h-4 w-4 text-white" strokeWidth={2.5} />
             </div>
             <span className="font-heading font-black text-lg tracking-tight text-white uppercase">
@@ -148,7 +148,7 @@ export default function UserDashboard() {
           )}
 
           {!loading && incidents.length === 0 && (
-            <div className="rounded-2xl border border-dashed border-white/10 bg-[#0e1015]/40 p-16 text-center">
+            <div className="rounded-2xl border border-dashed border-white/10 bg-[#0c111d]/40 p-16 text-center">
               <Car className="mx-auto h-10 w-10 text-neutral-600 mb-3" />
               <h3 className="font-heading text-lg font-bold uppercase tracking-wider text-white">
                 No Active Incidents
@@ -167,7 +167,7 @@ export default function UserDashboard() {
               transition={{ delay: i * 0.04 }}
               data-testid={`incident-card-${inc.id}`}
               onClick={() => setSelected(inc)}
-              className="group w-full rounded-2xl bg-[#0e1015] border border-white/[0.08] hover:border-white/20 p-6 text-left transition-all duration-300 flex flex-col justify-between"
+              className="group w-full rounded-2xl bg-[#0c111d] border border-white/[0.08] hover:border-white/20 p-6 text-left transition-all duration-300 flex flex-col justify-between"
             >
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
@@ -318,7 +318,7 @@ function NewIncidentDialog({ open, onOpenChange, onCreated }) {
         if (!o) reset();
       }}
     >
-      <DialogContent className="max-h-[90vh] overflow-y-auto border-white/10 bg-[#0e1015] text-white sm:max-w-lg p-8 rounded-2xl shadow-2xl">
+      <DialogContent className="max-h-[90vh] overflow-y-auto border-white/10 bg-[#0c111d] text-white sm:max-w-lg p-8 rounded-2xl shadow-2xl">
         <DialogHeader>
           <div className="flex flex-col font-heading font-black text-white text-xs tracking-[0.25em] uppercase text-neutral-400 mb-1">
             <span>INTAKE ENGINE</span>
@@ -540,7 +540,7 @@ function DetailDialog({ incident, onClose }) {
 
   return (
     <Dialog open={!!incident} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto border-white/10 bg-[#0e1015] text-white sm:max-w-lg p-6 sm:p-8 rounded-2xl shadow-2xl">
+      <DialogContent className="max-h-[90vh] overflow-y-auto border-white/10 bg-[#0c111d] text-white sm:max-w-lg p-6 sm:p-8 rounded-2xl shadow-2xl">
         <DialogHeader className="space-y-3">
           <div className="flex items-center justify-between pb-2 border-b border-white/[0.08] pr-8">
             <button
@@ -603,7 +603,7 @@ function DetailDialog({ incident, onClose }) {
                     className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-heading font-semibold uppercase tracking-wider ${
                       incident.is_solvable
                         ? "bg-[#00F0FF]/15 text-[#00F0FF] border border-[#00F0FF]/30"
-                        : "bg-[#E63946]/15 text-[#E63946] border border-[#E63946]/30"
+                        : "bg-[#e60012]/15 text-[#e60012] border border-[#e60012]/30"
                     }`}
                   >
                     {incident.is_solvable ? "SOLVABLE · DIY RESOLUTION" : "DEALER INTAKE REQUIRED"}

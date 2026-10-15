@@ -42,7 +42,7 @@ export default function GetACodeModal({ isOpen, onClose }) {
       if (res.data?.ok) {
         setSuccess(
           res.data.message ||
-            "Your quote request has been received! Our team at customer@ndvTexas.com will reply promptly."
+            "Your quote request has been received! A confirmation email has been sent to your email from AutoCare Pulse."
         );
       } else {
         setError(res.data?.detail || "Could not submit quote request. Please try again.");
@@ -51,7 +51,7 @@ export default function GetACodeModal({ isOpen, onClose }) {
       const msg =
         err.response?.data?.detail ||
         err.message ||
-        "Network connection issue. Please retry or email customer@ndvTexas.com.";
+        "Network connection issue. Please retry or contact support.";
       setError(msg);
     } finally {
       setLoading(false);
@@ -115,7 +115,7 @@ export default function GetACodeModal({ isOpen, onClose }) {
             </div>
             <p>{success}</p>
             <p className="text-[11px] text-emerald-300/80">
-              Admin notification sent to: <strong className="text-white">customer@ndvTexas.com</strong>
+              Confirmation sent directly from: <strong className="text-white">AutoCare Pulse</strong>
             </p>
             <div className="pt-2 flex justify-end">
               <button
@@ -270,13 +270,13 @@ export default function GetACodeModal({ isOpen, onClose }) {
 
             <div className="pt-2 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-t border-white/10">
               <span className="text-[11px] text-neutral-400 font-mono">
-                Admin destination: <span className="text-white">customer@ndvTexas.com</span>
+                Official sender: <span className="text-[#00F0FF]">AutoCare Pulse</span>
               </span>
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-[#e60012] hover:bg-[#c80010] text-white font-heading font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-heading font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2 shadow-md shadow-blue-600/20"
               >
                 {loading ? (
                   <>

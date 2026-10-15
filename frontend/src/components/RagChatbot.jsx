@@ -88,14 +88,14 @@ const RAG_QUESTIONS = [
     question: "How do fleets and workshops schedule a demo?",
     keywords: ["demo", "enterprise", "fleet", "walkthrough", "dealership"],
     answer:
-      "Click 'Request Demo' in the top bar and enter your work email. An automated notification sends immediately to customer@ndvTexas.com for direct follow-up.",
+      "Click 'Request Demo' in the top bar and enter your details. An official confirmation email is dispatched immediately to your email address from AutoCare Pulse.",
   },
   {
     id: "q-get-quote",
     question: "How do I get a custom quote or contact the admin?",
     keywords: ["quote", "pricing", "code", "admin", "contact", "support"],
     answer:
-      "Click 'Get a Quote' in the top bar to submit queries regarding workshop licensing or fleet pricing directly to customer@ndvTexas.com.",
+      "Click 'Get a Quote' in the top bar to submit queries regarding workshop licensing or fleet pricing. An official quotation receipt will be sent directly to your email from AutoCare Pulse.",
   },
 ];
 
@@ -324,33 +324,43 @@ export default function RagChatbot() {
             </div>
 
             <form onSubmit={handleReportSubmit} className="space-y-2">
+              <input
+                type="text"
+                value={reportText}
+                onChange={(e) => setReportText(e.target.value)}
+                placeholder="Type your question..."
+                required
+                className="w-full px-2.5 py-1.5 rounded-lg bg-[#0c111d] border border-white/10 text-white placeholder-neutral-500 text-xs focus:outline-none focus:border-[#00F0FF] transition-colors"
+              />
+
               <div className="flex items-center gap-1.5">
                 <input
-                  type="text"
-                  value={reportText}
-                  onChange={(e) => setReportText(e.target.value)}
-                  placeholder="Type your question..."
+                  type="email"
+                  value={reportEmail}
+                  onChange={(e) => setReportEmail(e.target.value)}
+                  placeholder="Your email for confirmation..."
                   required
                   className="flex-1 px-2.5 py-1.5 rounded-lg bg-[#0c111d] border border-white/10 text-white placeholder-neutral-500 text-xs focus:outline-none focus:border-[#00F0FF] transition-colors"
                 />
 
                 <button
                   type="submit"
-                  disabled={isSubmitting || !reportText.trim()}
-                  className="px-3 py-1.5 rounded-lg bg-[#e60012] hover:bg-[#c80010] text-white text-xs font-bold uppercase tracking-wider shrink-0 transition-colors disabled:opacity-40 cursor-pointer flex items-center gap-1"
+                  disabled={isSubmitting || !reportText.trim() || !reportEmail.trim()}
+                  className="px-3 py-1.5 rounded-lg bg-[#00F0FF] hover:bg-[#00d8e6] text-[#090a0d] text-xs font-bold uppercase tracking-wider shrink-0 transition-all duration-200 disabled:opacity-40 cursor-pointer flex items-center gap-1 shadow-sm"
                 >
                   {isSubmitting ? (
                     <Loader2 size={12} className="animate-spin" />
                   ) : (
                     <Send size={12} />
                   )}
+                  <span>Report</span>
                 </button>
               </div>
 
               {reportSuccess && (
                 <div className="p-1.5 rounded-md bg-emerald-950/30 border border-emerald-500/20 text-emerald-300 text-[11px] flex items-center gap-1.5">
                   <CheckCircle2 size={12} className="shrink-0 text-emerald-400" />
-                  <span>Question reported to customer@ndvTexas.com</span>
+                  <span>Question reported! Confirmation sent to your email from AutoCare Pulse.</span>
                 </div>
               )}
 

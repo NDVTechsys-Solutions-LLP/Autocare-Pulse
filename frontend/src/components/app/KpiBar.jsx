@@ -17,11 +17,11 @@ export default function KpiBar({ kpis }) {
       label: "SLA Breaches",
       value: kpis.breaches,
       sub: `${kpis.sla_compliance}% compliant`,
-      color: "text-[#E63946]",
+      color: "text-[#e60012]",
       border: kpis.breaches > 0
-        ? "border-[#E63946]/50 shadow-[0_0_20px_rgba(230,57,70,0.15)]"
-        : "border-white/[0.08] hover:border-[#E63946]/40",
-      iconBg: "bg-[#E63946]/10 text-[#E63946]",
+        ? "border-[#e60012]/50"
+        : "border-white/[0.08] hover:border-[#e60012]/40",
+      iconBg: "bg-[#e60012]/10 text-[#e60012]",
     },
     {
       icon: Timer,

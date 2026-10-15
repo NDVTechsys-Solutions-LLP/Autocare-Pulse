@@ -1421,7 +1421,7 @@ async def health():
 # ============================================================================
 # Admin Notification, Demo Requests, Quote Inquiries, & RAG Support
 # ============================================================================
-ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL") or os.environ.get("CONTACT_REQUEST_EMAIL") or "customer@ndvtexas.com"
+ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL") or os.environ.get("CONTACT_REQUEST_EMAIL") or "ndvtechsys.solutions@gmail.com"
 
 
 class DemoRequestIn(BaseModel):
@@ -1506,6 +1506,64 @@ async def send_admin_notification(*, to_email: str, subject: str, body_text: str
         return {"sent": False, "provider": "mongodb_record", "error": str(e)}
 
 
+async def dispatch_pulse_email(*, to_email: str, subject: str, body_text: str, html_content: str) -> dict:
+    """
+    Dispatches outbound email in the name of AutoCare Pulse (EMAIL_FROM_NAME).
+    Supports Resend, SendGrid, and Emergent-managed email proxy with graceful error handling.
+    """
+    to_clean = (to_email or "").strip().lower()
+    if not to_clean:
+        return {"sent": False, "error": "Empty recipient email"}
+
+    resend_key = os.environ.get("RESEND_API_KEY")
+    sendgrid_key = os.environ.get("SENDGRID_API_KEY")
+
+    if resend_key:
+        try:
+            async with httpx.AsyncClient(timeout=10) as client:
+                res = await client.post(
+                    "https://api.resend.com/emails",
+                    headers={"Authorization": f"Bearer {resend_key}", "Content-Type": "application/json"},
+                    json={
+                        "from": f"{EMAIL_FROM_NAME} <{os.environ.get('SENDER_EMAIL', 'notifications@autocarepulse.com')}>",
+                        "to": [to_clean],
+                        "subject": subject,
+                        "text": body_text,
+                        "html": html_content,
+                    },
+                )
+            if res.status_code in (200, 201):
+                return {"sent": True, "provider": "resend", "data": res.json()}
+        except Exception as e:
+            logger.error(f"[EMAIL FAILED - Resend] {e}")
+
+    if sendgrid_key:
+        try:
+            async with httpx.AsyncClient(timeout=10) as client:
+                res = await client.post(
+                    "https://api.sendgrid.com/v3/mail/send",
+                    headers={"Authorization": f"Bearer {sendgrid_key}", "Content-Type": "application/json"},
+                    json={
+                        "personalizations": [{"to": [{"email": to_clean}]}],
+                        "from": {"email": os.environ.get("SENDER_EMAIL", "notifications@autocarepulse.com"), "name": EMAIL_FROM_NAME},
+                        "subject": subject,
+                        "content": [{"type": "text/html", "value": html_content}],
+                    },
+                )
+            if res.status_code in (200, 201, 202):
+                return {"sent": True, "provider": "sendgrid"}
+        except Exception as e:
+            logger.error(f"[EMAIL FAILED - SendGrid] {e}")
+
+    # Fallback to internal Emergent send_email helper (active key in .env)
+    try:
+        await send_email(to=to_clean, subject=subject, html=html_content)
+        return {"sent": True, "provider": "emergent_email"}
+    except Exception as e:
+        logger.warning(f"[EMAIL DISPATCH FAILED] {to_clean}: {e}")
+        return {"sent": False, "provider": "mongodb_record", "error": str(e)}
+
+
 @api_router.post("/demo-request")
 async def submit_demo_request(payload: DemoRequestIn):
     if payload.honeypot and payload.honeypot.strip():
@@ -1522,8 +1580,62 @@ async def submit_demo_request(payload: DemoRequestIn):
     desc_clean = (payload.description or "").strip()
     date_clean = (payload.preferred_date or "").strip()
 
-    subject = f"[AutoCare Pulse Demo Request] {name_clean} ({org_clean or 'Individual'})"
-    body_text = (
+    # 1. USER CONFIRMATION EMAIL (Sent to user's email in the name of AutoCare Pulse)
+    user_subject = f"[AutoCare Pulse] Demo Request Confirmed · Reference #{demo_id}"
+    user_body = (
+        f"Hello {name_clean},\n\n"
+        f"Thank you for requesting an interactive product walkthrough of AutoCare Pulse.\n"
+        f"We have received your demo request under Reference ID: #{demo_id}.\n\n"
+        f"DEMO DETAILS:\n"
+        f"----------------------------------------\n"
+        f"Organization   : {org_clean or 'Individual'}\n"
+        f"Preferred Date : {date_clean or 'Earliest available'}\n"
+        f"Phone Contact  : {phone_clean or 'Not specified'}\n"
+        f"Notes / Scope  : {desc_clean or 'General platform overview'}\n\n"
+        f"A dedicated product specialist will follow up shortly to confirm your scheduled walkthrough.\n\n"
+        f"Best regards,\n"
+        f"The AutoCare Pulse Team\n"
+        f"Incident Command for Every Vehicle"
+    )
+    user_html = (
+        f'<table role="presentation" width="100%" style="background-color:#090a0d;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif;padding:32px 16px;">'
+        f'<tr><td align="center">'
+        f'<table role="presentation" width="100%" style="max-width:580px;background-color:#0e1015;border:1px solid #1f293d;border-radius:12px;overflow:hidden;">'
+        f'<tr><td style="background-color:#E63946;padding:16px 24px;">'
+        f'<h1 style="margin:0;color:#ffffff;font-size:16px;font-weight:800;letter-spacing:1px;text-transform:uppercase;">'
+        f'AUTOCARE PULSE · DEMO REQUEST CONFIRMED'
+        f'</h1></td></tr>'
+        f'<tr><td style="padding:24px 28px;color:#f1f5f9;font-size:14px;line-height:1.6;">'
+        f'<p style="margin-top:0;font-size:15px;color:#ffffff;">Hello <strong>{escape(name_clean)}</strong>,</p>'
+        f'<p style="color:#94a3b8;">Thank you for requesting an interactive product walkthrough of <strong>AutoCare Pulse</strong>. We have logged your request under Reference ID <strong style="color:#00F0FF;">#{demo_id}</strong>.</p>'
+        f'<table role="presentation" width="100%" style="border-collapse:collapse;margin:18px 0;background-color:#141720;border:1px solid #1f293d;border-radius:8px;font-size:13px;">'
+        f'<tr><td style="padding:10px 14px;color:#94a3b8;width:130px;font-weight:600;border-bottom:1px solid #1f293d;">Organization:</td>'
+        f'<td style="padding:10px 14px;color:#ffffff;font-weight:600;border-bottom:1px solid #1f293d;">{escape(org_clean) if org_clean else "Individual"}</td></tr>'
+        f'<tr><td style="padding:10px 14px;color:#94a3b8;font-weight:600;border-bottom:1px solid #1f293d;">Preferred Date:</td>'
+        f'<td style="padding:10px 14px;color:#ffffff;border-bottom:1px solid #1f293d;">{escape(date_clean) if date_clean else "Earliest available"}</td></tr>'
+        f'<tr><td style="padding:10px 14px;color:#94a3b8;font-weight:600;border-bottom:1px solid #1f293d;">Contact Phone:</td>'
+        f'<td style="padding:10px 14px;color:#ffffff;border-bottom:1px solid #1f293d;">{escape(phone_clean) if phone_clean else "Not provided"}</td></tr>'
+        f'<tr><td style="padding:10px 14px;color:#94a3b8;font-weight:600;vertical-align:top;">Scope / Notes:</td>'
+        f'<td style="padding:10px 14px;color:#cbd5e1;">{escape(desc_clean) if desc_clean else "General platform walkthrough"}</td></tr>'
+        f'</table>'
+        f'<p style="color:#94a3b8;font-size:13px;">Our solution engineering team will review your requirements and reach out to you directly at <strong style="color:#ffffff;">{escape(email_clean)}</strong> to confirm your meeting link.</p>'
+        f'</td></tr>'
+        f'<tr><td style="background-color:#05070a;padding:12px 28px;border-top:1px solid #1f293d;color:#64748b;font-size:12px;">'
+        f'Sent by AutoCare Pulse Telemetry · Incident Command for Every Vehicle'
+        f'</td></tr>'
+        f'</table></td></tr></table>'
+    )
+
+    user_dispatch = await dispatch_pulse_email(
+        to_email=email_clean,
+        subject=user_subject,
+        body_text=user_body,
+        html_content=user_html,
+    )
+
+    # 2. ADMIN NOTIFICATION EMAIL
+    admin_subject = f"[AutoCare Pulse Demo Request] {name_clean} ({org_clean or 'Individual'})"
+    admin_body = (
         f"NEW DEMO REQUEST - AUTOCARE PULSE\n"
         f"==================================\n"
         f"Name          : {name_clean}\n"
@@ -1532,16 +1644,16 @@ async def submit_demo_request(payload: DemoRequestIn):
         f"Organization  : {org_clean or 'N/A'}\n"
         f"Preferred Date: {date_clean or 'Earliest available'}\n"
         f"Description   : {desc_clean or 'None provided'}\n\n"
-        f"Forwarded automatically to admin: {ADMIN_EMAIL}\n"
-        f"Timestamp: {iso(now_utc())}"
+        f"User Notified : {user_dispatch.get('sent', False)}\n"
+        f"Timestamp     : {iso(now_utc())}"
     )
-    html_content = (
+    admin_html = (
         f'<table role="presentation" width="100%" style="background-color:#090a0d;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif;padding:32px 16px;">'
         f'<tr><td align="center">'
         f'<table role="presentation" width="100%" style="max-width:580px;background-color:#0e1015;border:1px solid #1f293d;border-radius:12px;overflow:hidden;">'
         f'<tr><td style="background-color:#E63946;padding:16px 24px;">'
         f'<h1 style="margin:0;color:#ffffff;font-size:16px;font-weight:800;letter-spacing:1px;text-transform:uppercase;">'
-        f'AUTOCARE PULSE · DEMO REQUEST'
+        f'AUTOCARE PULSE · DEMO REQUEST LEAD'
         f'</h1></td></tr>'
         f'<tr><td style="padding:24px 28px;color:#f1f5f9;font-size:14px;line-height:1.6;">'
         f'<p style="margin-top:0;color:#94a3b8;">A new prospect has requested a product walkthrough:</p>'
@@ -1549,14 +1661,14 @@ async def submit_demo_request(payload: DemoRequestIn):
         f'<tr><td style="padding:8px 0;color:#94a3b8;width:130px;font-weight:600;">Full Name:</td>'
         f'<td style="padding:8px 0;color:#ffffff;font-weight:600;">{escape(name_clean)}</td></tr>'
         f'<tr><td style="padding:8px 0;color:#94a3b8;font-weight:600;">Work Email:</td>'
-        f'<td style="padding:8px 0;color:#00F0FF;"><a href="mailto:{escape(email_clean)}" style="color:#00F0FF;text-decoration:none;">{escape(email_clean)}</a></td></tr>'
+        f'<td style="padding:8px 0;color:#00F0FF;">{escape(email_clean)}</td></tr>'
         f'<tr><td style="padding:8px 0;color:#94a3b8;font-weight:600;">Phone:</td>'
         f'<td style="padding:8px 0;color:#ffffff;">{escape(phone_clean)}</td></tr>'
         f'<tr><td style="padding:8px 0;color:#94a3b8;font-weight:600;">Organization:</td>'
         f'<td style="padding:8px 0;color:#ffffff;">{escape(org_clean) if org_clean else "Not specified"}</td></tr>'
         f'<tr><td style="padding:8px 0;color:#94a3b8;font-weight:600;">Preferred Date:</td>'
         f'<td style="padding:8px 0;color:#ffffff;">{escape(date_clean) if date_clean else "Earliest available"}</td></tr>'
-        f'<tr><td style="padding:8px 0;color:#94a3b8;font-weight:600;vertical-align:top;">Description / Notes:</td>'
+        f'<tr><td style="padding:8px 0;color:#94a3b8;font-weight:600;vertical-align:top;">Notes:</td>'
         f'<td style="padding:8px 0;color:#cbd5e1;">{escape(desc_clean) if desc_clean else "None provided"}</td></tr>'
         f'</table>'
         f'</td></tr>'
@@ -1566,11 +1678,11 @@ async def submit_demo_request(payload: DemoRequestIn):
         f'</table></td></tr></table>'
     )
 
-    dispatch_res = await send_admin_notification(
+    admin_dispatch = await dispatch_pulse_email(
         to_email=ADMIN_EMAIL,
-        subject=subject,
-        body_text=body_text,
-        html_content=html_content,
+        subject=admin_subject,
+        body_text=admin_body,
+        html_content=admin_html,
     )
 
     record = {
@@ -1582,7 +1694,8 @@ async def submit_demo_request(payload: DemoRequestIn):
         "preferred_date": date_clean,
         "description": desc_clean,
         "admin_email": ADMIN_EMAIL,
-        "email_dispatch": dispatch_res,
+        "user_email_dispatch": user_dispatch,
+        "admin_email_dispatch": admin_dispatch,
         "status": "pending_admin_review",
         "created_at": iso(now_utc()),
     }
@@ -1591,8 +1704,9 @@ async def submit_demo_request(payload: DemoRequestIn):
     return {
         "ok": True,
         "demo_id": demo_id,
-        "email_delivery": dispatch_res,
-        "message": f"Demo request received! Our team has notified the admin at {ADMIN_EMAIL} and will follow up with you promptly at {email_clean}.",
+        "user_email_sent": user_dispatch.get("sent", False),
+        "admin_email_sent": admin_dispatch.get("sent", False),
+        "message": f"Demo request received! A confirmation has been sent to your email ({email_clean}) in the name of AutoCare Pulse.",
     }
 
 
@@ -1616,8 +1730,62 @@ async def submit_contact_quote(payload: ContactQuoteIn):
     desc_clean = payload.description.strip()
     mode_clean = (payload.preferred_contact or "email").strip()
 
-    email_subject = f"[AutoCare Pulse Inquiry] {subject_clean} — {name_clean}"
-    body_text = (
+    # 1. USER CONFIRMATION EMAIL (Sent to user's email in the name of AutoCare Pulse)
+    user_subject = f"[AutoCare Pulse] Quote Request Received · Reference #{quote_id}"
+    user_body = (
+        f"Hello {name_clean},\n\n"
+        f"Thank you for contacting AutoCare Pulse.\n"
+        f"We have received your quote inquiry under Reference ID: #{quote_id}.\n\n"
+        f"INQUIRY SUMMARY:\n"
+        f"----------------------------------------\n"
+        f"Subject           : {subject_clean}\n"
+        f"Preferred Contact : {mode_clean.upper()}\n"
+        f"Phone             : {phone_clean or 'Not specified'}\n"
+        f"Requirements      :\n{desc_clean}\n\n"
+        f"Our enterprise team will review your specifications and reply promptly via {mode_clean}.\n\n"
+        f"Best regards,\n"
+        f"The AutoCare Pulse Team\n"
+        f"Incident Command for Every Vehicle"
+    )
+    user_html = (
+        f'<table role="presentation" width="100%" style="background-color:#090a0d;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif;padding:32px 16px;">'
+        f'<tr><td align="center">'
+        f'<table role="presentation" width="100%" style="max-width:580px;background-color:#0e1015;border:1px solid #1f293d;border-radius:12px;overflow:hidden;">'
+        f'<tr><td style="background-color:#00F0FF;padding:16px 24px;">'
+        f'<h1 style="margin:0;color:#090a0d;font-size:16px;font-weight:900;letter-spacing:1px;text-transform:uppercase;">'
+        f'AUTOCARE PULSE · QUOTE REQUEST RECEIVED'
+        f'</h1></td></tr>'
+        f'<tr><td style="padding:24px 28px;color:#f1f5f9;font-size:14px;line-height:1.6;">'
+        f'<p style="margin-top:0;font-size:15px;color:#ffffff;">Hello <strong>{escape(name_clean)}</strong>,</p>'
+        f'<p style="color:#94a3b8;">Thank you for contacting <strong>AutoCare Pulse</strong>. We have logged your inquiry under Reference ID <strong style="color:#00F0FF;">#{quote_id}</strong>.</p>'
+        f'<table role="presentation" width="100%" style="border-collapse:collapse;margin:18px 0;background-color:#141720;border:1px solid #1f293d;border-radius:8px;font-size:13px;">'
+        f'<tr><td style="padding:10px 14px;color:#94a3b8;width:130px;font-weight:600;border-bottom:1px solid #1f293d;">Inquiry Subject:</td>'
+        f'<td style="padding:10px 14px;color:#ffffff;font-weight:600;border-bottom:1px solid #1f293d;">{escape(subject_clean)}</td></tr>'
+        f'<tr><td style="padding:10px 14px;color:#94a3b8;font-weight:600;border-bottom:1px solid #1f293d;">Preferred Contact:</td>'
+        f'<td style="padding:10px 14px;color:#ffffff;border-bottom:1px solid #1f293d;">{escape(mode_clean.upper())}</td></tr>'
+        f'<tr><td style="padding:10px 14px;color:#94a3b8;font-weight:600;border-bottom:1px solid #1f293d;">Phone:</td>'
+        f'<td style="padding:10px 14px;color:#ffffff;border-bottom:1px solid #1f293d;">{escape(phone_clean) if phone_clean else "Not provided"}</td></tr>'
+        f'<tr><td style="padding:10px 14px;color:#94a3b8;font-weight:600;vertical-align:top;">Requirements:</td>'
+        f'<td style="padding:10px 14px;color:#cbd5e1;white-space:pre-wrap;">{escape(desc_clean)}</td></tr>'
+        f'</table>'
+        f'<p style="color:#94a3b8;font-size:13px;">Our enterprise solutions team will review your requirements and follow up with a detailed response via <strong style="color:#ffffff;">{escape(mode_clean)}</strong>.</p>'
+        f'</td></tr>'
+        f'<tr><td style="background-color:#05070a;padding:12px 28px;border-top:1px solid #1f293d;color:#64748b;font-size:12px;">'
+        f'Sent by AutoCare Pulse Telemetry · Incident Command for Every Vehicle'
+        f'</td></tr>'
+        f'</table></td></tr></table>'
+    )
+
+    user_dispatch = await dispatch_pulse_email(
+        to_email=email_clean,
+        subject=user_subject,
+        body_text=user_body,
+        html_content=user_html,
+    )
+
+    # 2. ADMIN NOTIFICATION EMAIL
+    admin_subject = f"[AutoCare Pulse Inquiry] {subject_clean} — {name_clean}"
+    admin_body = (
         f"NEW QUERY / GET A CODE INQUIRY\n"
         f"==============================\n"
         f"Name          : {name_clean}\n"
@@ -1625,18 +1793,17 @@ async def submit_contact_quote(payload: ContactQuoteIn):
         f"Phone         : {phone_clean or 'N/A'}\n"
         f"Subject       : {subject_clean}\n"
         f"Preferred Mode: {mode_clean}\n\n"
-        f"PROBLEM / QUERY DESCRIPTION:\n"
-        f"{desc_clean}\n\n"
-        f"Forwarded automatically to admin: {ADMIN_EMAIL}\n"
-        f"Timestamp: {iso(now_utc())}"
+        f"DESCRIPTION:\n{desc_clean}\n\n"
+        f"User Notified : {user_dispatch.get('sent', False)}\n"
+        f"Timestamp     : {iso(now_utc())}"
     )
-    html_content = (
+    admin_html = (
         f'<table role="presentation" width="100%" style="background-color:#090a0d;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif;padding:32px 16px;">'
         f'<tr><td align="center">'
         f'<table role="presentation" width="100%" style="max-width:580px;background-color:#0e1015;border:1px solid #1f293d;border-radius:12px;overflow:hidden;">'
         f'<tr><td style="background-color:#00F0FF;padding:16px 24px;">'
         f'<h1 style="margin:0;color:#090a0d;font-size:16px;font-weight:900;letter-spacing:1px;text-transform:uppercase;">'
-        f'AUTOCARE PULSE · CLIENT INQUIRY / GET A CODE'
+        f'AUTOCARE PULSE · CLIENT INQUIRY LEAD'
         f'</h1></td></tr>'
         f'<tr><td style="padding:24px 28px;color:#f1f5f9;font-size:14px;line-height:1.6;">'
         f'<p style="margin-top:0;color:#94a3b8;">A customer or dealership representative has submitted a query:</p>'
@@ -1644,7 +1811,7 @@ async def submit_contact_quote(payload: ContactQuoteIn):
         f'<tr><td style="padding:8px 0;color:#94a3b8;width:130px;font-weight:600;">Client Name:</td>'
         f'<td style="padding:8px 0;color:#ffffff;font-weight:600;">{escape(name_clean)}</td></tr>'
         f'<tr><td style="padding:8px 0;color:#94a3b8;font-weight:600;">Email:</td>'
-        f'<td style="padding:8px 0;color:#00F0FF;"><a href="mailto:{escape(email_clean)}" style="color:#00F0FF;text-decoration:none;">{escape(email_clean)}</a></td></tr>'
+        f'<td style="padding:8px 0;color:#00F0FF;">{escape(email_clean)}</td></tr>'
         f'<tr><td style="padding:8px 0;color:#94a3b8;font-weight:600;">Phone:</td>'
         f'<td style="padding:8px 0;color:#ffffff;">{escape(phone_clean) if phone_clean else "Not provided"}</td></tr>'
         f'<tr><td style="padding:8px 0;color:#94a3b8;font-weight:600;">Subject:</td>'
@@ -1661,11 +1828,11 @@ async def submit_contact_quote(payload: ContactQuoteIn):
         f'</table></td></tr></table>'
     )
 
-    dispatch_res = await send_admin_notification(
+    admin_dispatch = await dispatch_pulse_email(
         to_email=ADMIN_EMAIL,
-        subject=email_subject,
-        body_text=body_text,
-        html_content=html_content,
+        subject=admin_subject,
+        body_text=admin_body,
+        html_content=admin_html,
     )
 
     record = {
@@ -1677,7 +1844,8 @@ async def submit_contact_quote(payload: ContactQuoteIn):
         "description": desc_clean,
         "preferred_contact": mode_clean,
         "admin_email": ADMIN_EMAIL,
-        "email_dispatch": dispatch_res,
+        "user_email_dispatch": user_dispatch,
+        "admin_email_dispatch": admin_dispatch,
         "status": "pending_admin_response",
         "created_at": iso(now_utc()),
     }
@@ -1686,8 +1854,9 @@ async def submit_contact_quote(payload: ContactQuoteIn):
     return {
         "ok": True,
         "quote_id": quote_id,
-        "email_delivery": dispatch_res,
-        "message": f"Your inquiry has been submitted! An admin at {ADMIN_EMAIL} will review your query and reply to {email_clean}.",
+        "user_email_sent": user_dispatch.get("sent", False),
+        "admin_email_sent": admin_dispatch.get("sent", False),
+        "message": f"Your inquiry has been submitted! A confirmation has been sent to your email ({email_clean}) in the name of AutoCare Pulse.",
     }
 
 
@@ -1705,8 +1874,57 @@ async def report_unanswered_question(payload: ReportQuestionIn):
     email_clean = (payload.email or "").strip().lower()
     source_clean = (payload.user_context or "AutoCare Pulse Assistant").strip()
 
-    subject = f"[AutoCare Pulse Assistant] Reported Question: {question_clean[:40]}..."
-    body_text = (
+    # 1. USER CONFIRMATION EMAIL (Sent to user's email if provided)
+    user_dispatch = None
+    if email_clean:
+        user_subject = f"[AutoCare Pulse] Support Question Received · Reference #{report_id}"
+        user_body = (
+            f"Hello,\n\n"
+            f"Thank you for contacting the AutoCare Pulse Assistant.\n"
+            f"We have received your question under Reference ID: #{report_id}.\n\n"
+            f"SUBMITTED QUESTION:\n"
+            f"----------------------------------------\n"
+            f"Category : {category_clean}\n"
+            f"Question : {question_clean}\n\n"
+            f"Our technical support team is reviewing your question and will reply directly to this email.\n\n"
+            f"Best regards,\n"
+            f"The AutoCare Pulse Team\n"
+            f"Incident Command for Every Vehicle"
+        )
+        user_html = (
+            f'<table role="presentation" width="100%" style="background-color:#090a0d;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif;padding:32px 16px;">'
+            f'<tr><td align="center">'
+            f'<table role="presentation" width="100%" style="max-width:580px;background-color:#0e1015;border:1px solid #1f293d;border-radius:12px;overflow:hidden;">'
+            f'<tr><td style="background-color:#E63946;padding:16px 24px;">'
+            f'<h1 style="margin:0;color:#ffffff;font-size:16px;font-weight:800;letter-spacing:1px;text-transform:uppercase;">'
+            f'AUTOCARE PULSE · SUPPORT QUESTION LOGGED'
+            f'</h1></td></tr>'
+            f'<tr><td style="padding:24px 28px;color:#f1f5f9;font-size:14px;line-height:1.6;">'
+            f'<p style="margin-top:0;font-size:15px;color:#ffffff;">Hello,</p>'
+            f'<p style="color:#94a3b8;">Thank you for contacting the <strong>AutoCare Pulse Assistant</strong>. Your inquiry has been routed to our support team under Reference ID <strong style="color:#00F0FF;">#{report_id}</strong>.</p>'
+            f'<table role="presentation" width="100%" style="border-collapse:collapse;margin:18px 0;background-color:#141720;border:1px solid #1f293d;border-radius:8px;font-size:13px;">'
+            f'<tr><td style="padding:10px 14px;color:#94a3b8;width:130px;font-weight:600;border-bottom:1px solid #1f293d;">Category:</td>'
+            f'<td style="padding:10px 14px;color:#ffffff;border-bottom:1px solid #1f293d;">{escape(category_clean)}</td></tr>'
+            f'<tr><td style="padding:10px 14px;color:#94a3b8;font-weight:600;vertical-align:top;">Your Question:</td>'
+            f'<td style="padding:10px 14px;color:#ffffff;font-weight:600;">{escape(question_clean)}</td></tr>'
+            f'</table>'
+            f'<p style="color:#94a3b8;font-size:13px;">Our technical team is reviewing your question and will reply directly to <strong style="color:#ffffff;">{escape(email_clean)}</strong>.</p>'
+            f'</td></tr>'
+            f'<tr><td style="background-color:#05070a;padding:12px 28px;border-top:1px solid #1f293d;color:#64748b;font-size:12px;">'
+            f'Sent by AutoCare Pulse Telemetry · Incident Command for Every Vehicle'
+            f'</td></tr>'
+            f'</table></td></tr></table>'
+        )
+        user_dispatch = await dispatch_pulse_email(
+            to_email=email_clean,
+            subject=user_subject,
+            body_text=user_body,
+            html_content=user_html,
+        )
+
+    # 2. ADMIN NOTIFICATION EMAIL
+    admin_subject = f"[AutoCare Pulse Assistant] Reported Question: {question_clean[:40]}..."
+    admin_body = (
         f"NEW USER QUESTION REPORTED FROM ASSISTANT\n"
         f"=========================================\n"
         f"Report ID   : {report_id}\n"
@@ -1717,7 +1935,7 @@ async def report_unanswered_question(payload: ReportQuestionIn):
         f"Timestamp   : {iso(now_utc())}\n\n"
         f"Forwarded automatically to admin: {ADMIN_EMAIL}"
     )
-    html_content = (
+    admin_html = (
         f'<table role="presentation" width="100%" style="background-color:#090a0d;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif;padding:32px 16px;">'
         f'<tr><td align="center">'
         f'<table role="presentation" width="100%" style="max-width:580px;background-color:#0e1015;border:1px solid #1f293d;border-radius:12px;overflow:hidden;">'
@@ -1742,11 +1960,11 @@ async def report_unanswered_question(payload: ReportQuestionIn):
         f'</table></td></tr></table>'
     )
 
-    dispatch_res = await send_admin_notification(
+    admin_dispatch = await dispatch_pulse_email(
         to_email=ADMIN_EMAIL,
-        subject=subject,
-        body_text=body_text,
-        html_content=html_content,
+        subject=admin_subject,
+        body_text=admin_body,
+        html_content=admin_html,
     )
 
     record = {
@@ -1756,17 +1974,24 @@ async def report_unanswered_question(payload: ReportQuestionIn):
         "email": email_clean,
         "user_context": source_clean,
         "admin_email": ADMIN_EMAIL,
-        "email_dispatch": dispatch_res,
+        "user_email_dispatch": user_dispatch,
+        "admin_email_dispatch": admin_dispatch,
         "status": "pending_admin_review",
         "created_at": iso(now_utc()),
     }
     await db.unanswered_questions.insert_one(record)
 
+    if email_clean:
+        msg = f"Question received! A confirmation has been sent to your email ({email_clean}) in the name of AutoCare Pulse."
+    else:
+        msg = f"Question received! The AutoCare Pulse team has been notified at {ADMIN_EMAIL}."
+
     return {
         "ok": True,
         "report_id": report_id,
-        "email_delivery": dispatch_res,
-        "message": f"Question received! Our team has been notified at {ADMIN_EMAIL}.",
+        "user_email_sent": user_dispatch.get("sent", False) if user_dispatch else False,
+        "admin_email_sent": admin_dispatch.get("sent", False),
+        "message": msg,
     }
 
 

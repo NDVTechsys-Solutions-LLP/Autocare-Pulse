@@ -131,7 +131,7 @@ class TestUploadAndPhotoIncident:
         assert r.status_code == 200, r.text
         d = r.json()
         assert d["photo_paths"] == [pytest.photo_path]
-        assert d["category"] in ("Body", "Other", "Tyres", "Electrical", "Engine")
+        assert d["category"] in ("Body", "Other", "Tyres", "Electrical", "Engine", "General")
 
 
 # ---------------- Dealer ops ----------------

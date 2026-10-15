@@ -42,7 +42,7 @@ export default function DemoRequestModal({ isOpen, onClose }) {
       if (res.data?.ok) {
         setSuccess(
           res.data.message ||
-            "Demo request received! Our team has notified customer@ndvTexas.com and will reach out promptly."
+            "Demo request received! A confirmation email has been sent to your email from AutoCare Pulse."
         );
       } else {
         setError(res.data?.detail || "Could not submit demo request. Please try again.");
@@ -51,7 +51,7 @@ export default function DemoRequestModal({ isOpen, onClose }) {
       const msg =
         err.response?.data?.detail ||
         err.message ||
-        "Network connection issue. Please retry or contact customer@ndvTexas.com.";
+        "Network connection issue. Please retry or contact support.";
       setError(msg);
     } finally {
       setLoading(false);
@@ -93,7 +93,7 @@ export default function DemoRequestModal({ isOpen, onClose }) {
 
         {/* Modal Title */}
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[#e60012]/10 border border-[#e60012]/25 flex items-center justify-center text-[#e60012]">
+          <div className="w-10 h-10 rounded-xl bg-[#00F0FF]/15 border border-[#00F0FF]/30 flex items-center justify-center text-[#00F0FF]">
             <Calendar size={20} />
           </div>
           <div>
@@ -115,7 +115,7 @@ export default function DemoRequestModal({ isOpen, onClose }) {
             </div>
             <p>{success}</p>
             <p className="text-[11px] text-emerald-300/80">
-              Admin notification sent to: <strong className="text-white">customer@ndvTexas.com</strong>
+              Confirmation sent directly from: <strong className="text-white">AutoCare Pulse</strong>
             </p>
             <div className="pt-2 flex justify-end">
               <button
@@ -238,13 +238,13 @@ export default function DemoRequestModal({ isOpen, onClose }) {
 
             <div className="pt-2 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-t border-white/10">
               <span className="text-[11px] text-neutral-400 font-mono">
-                Admin destination: <span className="text-white">customer@ndvTexas.com</span>
+                Official sender: <span className="text-[#00F0FF]">AutoCare Pulse</span>
               </span>
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-[#e60012] hover:bg-[#c80010] text-white font-heading font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-[#00F0FF] hover:bg-[#00d8e6] text-[#090a0d] font-heading font-bold text-xs uppercase tracking-wider transition-all duration-200 cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2 shadow-md shadow-[#00F0FF]/25 active:scale-95"
               >
                 {loading ? (
                   <>

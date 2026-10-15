@@ -84,8 +84,8 @@ export default function LegalModal({ isOpen, onClose, docType }) {
               </h4>
               <p>
                 Inquiries regarding data rights may be directed to our operations desk at{" "}
-                <a href="mailto:customer@ndvTexas.com" className="text-[#e60012] underline">
-                  customer@ndvTexas.com
+                <a href="mailto:ndvtechsys.solutions@gmail.com" className="text-[#e60012] underline">
+                  ndvtechsys.solutions@gmail.com
                 </a>
                 .
               </p>

@@ -36,7 +36,7 @@ export default function RsaTracker({ incidentId }) {
         </span>
       </div>
       <div className="relative mt-4 h-2 rounded-full bg-white/10">
-        <div className="absolute left-0 top-0 h-2 rounded-full bg-[#00F0FF] transition-all duration-700 shadow-[0_0_8px_rgba(0,240,255,0.4)]" style={{ width: `${pct}%` }} />
+        <div className="absolute left-0 top-0 h-2 rounded-full bg-[#00F0FF] transition-all duration-700" style={{ width: `${pct}%` }} />
         <Truck className="absolute -top-2 h-5 w-5 text-[#00F0FF] transition-all duration-700" style={{ left: `calc(${pct}% - 10px)` }} />
       </div>
       <div className="mt-2 flex items-center justify-between font-mono text-[10px] text-muted-foreground">
