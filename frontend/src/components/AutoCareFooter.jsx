@@ -7,7 +7,6 @@ import {
   PhoneCall,
   ExternalLink,
   Linkedin,
-  Youtube,
   Phone,
 } from "lucide-react";
 
@@ -320,15 +319,6 @@ export default function AutoCareFooter({
               className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/15 border border-white/10 flex items-center justify-center text-neutral-300 hover:text-white transition-colors"
             >
               <Linkedin size={15} />
-            </a>
-            <a
-              href="https://youtube.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="YouTube"
-              className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/15 border border-white/10 flex items-center justify-center text-neutral-300 hover:text-white transition-colors"
-            >
-              <Youtube size={15} />
             </a>
             <a
               href="https://wa.me/919538880910?text=Hello%20AutoCare%20Pulse%20Team%2C%20I%20would%20like%20to%20learn%20more%20about%20your%20services."
