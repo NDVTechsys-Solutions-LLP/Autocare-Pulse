@@ -22,6 +22,7 @@ import {
   Layers,
   ChevronRight,
   Activity,
+  Type,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -62,6 +63,7 @@ export default function Landing() {
   const [email, setEmail] = useState("ndvtechsys.solutions@gmail.com");
   const [password, setPassword] = useState("DealerPass123!");
   const [busy, setBusy] = useState(false);
+  const [activeFontSet, setActiveFontSet] = useState("sora");
 
   const googleLogin = () => {
     // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
@@ -98,7 +100,11 @@ export default function Landing() {
   };
 
   return (
-    <div className="min-h-screen bg-[#090a0d] text-[#e5e7eb] font-body selection:bg-white/20 selection:text-white">
+    <div
+      className={`min-h-screen bg-[#090a0d] text-[#e5e7eb] font-body selection:bg-white/20 selection:text-white ${
+        activeFontSet === "urbanist" ? "font-theme-urbanist" : ""
+      }`}
+    >
       {/* =========================================================================
           FIXED MINIMALIST NAVIGATION
           ========================================================================= */}
@@ -115,7 +121,7 @@ export default function Landing() {
             <div className="grid h-8 w-8 place-items-center rounded-full bg-[#e60012] shrink-0">
               <Activity className="h-4 w-4 text-white" strokeWidth={2.5} />
             </div>
-            <span className="font-heading font-black text-sm sm:text-base tracking-tight text-white uppercase">
+            <span className="font-heading font-bold text-sm sm:text-base tracking-normal text-white uppercase">
               AUTOCARE<span className="text-[#00F0FF]">PULSE</span>
             </span>
           </div>
@@ -272,17 +278,17 @@ export default function Landing() {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="font-heading text-xs font-semibold tracking-[0.3em] uppercase text-[#00F0FF] mb-4 select-none"
+            className="font-heading text-xs font-semibold tracking-[0.2em] uppercase text-[#00F0FF] mb-3 select-none"
           >
             OEM &bull; DEALER &bull; CUSTOMER
           </motion.p>
 
-          {/* Giant Stark White & Cyan Title */}
+          {/* Scaled & Balanced White & Cyan Title */}
           <motion.h1
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.7, delay: 0.1 }}
-            className="font-heading font-black text-5xl sm:text-7xl md:text-8xl lg:text-9xl tracking-[0.05em] uppercase text-white leading-none select-none"
+            className="font-heading font-bold text-4xl sm:text-6xl md:text-7xl tracking-[-0.02em] uppercase text-white leading-tight select-none"
           >
             AUTOCARE<span className="text-[#00F0FF]">PULSE</span>
           </motion.h1>
@@ -292,7 +298,7 @@ export default function Landing() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.15 }}
-            className="font-heading text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold uppercase tracking-tight text-white mt-5"
+            className="font-subheading text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold tracking-tight text-neutral-100 mt-4 max-w-3xl leading-snug"
           >
             INTELLIGENT AI TRIAGE <span className="text-[#E63946]">FROM CUSTOMER INPUT</span> TO DEALER ACTION
           </motion.p>
@@ -302,7 +308,7 @@ export default function Landing() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="font-heading text-xs sm:text-sm font-medium tracking-[0.2em] uppercase text-neutral-400 mt-4 max-w-2xl text-center leading-relaxed"
+            className="font-body text-sm sm:text-base text-neutral-400 mt-4 max-w-2xl text-center leading-relaxed font-normal"
           >
             Instant photo analysis for cars &amp; bikes — guiding drivers to immediate dealer rescue or nearby authorized service centers with reserved bays.
           </motion.p>
@@ -377,13 +383,13 @@ export default function Landing() {
         <div className="relative z-10 max-w-6xl mx-auto w-full my-auto">
           {/* Header */}
           <div className="text-center mb-16">
-            <p className="font-heading text-xs font-semibold tracking-[0.25em] uppercase text-[#00F0FF] mb-3">
+            <p className="font-heading text-[11px] font-semibold tracking-[0.2em] uppercase text-[#00F0FF] mb-2.5">
               THE STATUS QUO VS AUTOCARE PULSE
             </p>
-            <h2 className="font-heading font-black text-3xl sm:text-5xl md:text-6xl uppercase tracking-[0.08em] text-white">
+            <h2 className="font-heading font-bold text-2xl sm:text-3xl md:text-4xl uppercase tracking-[0.03em] text-white">
               WHY VEHICLE BREAKDOWNS ARE BROKEN
             </h2>
-            <p className="mt-5 text-sm sm:text-base text-neutral-300 max-w-2xl mx-auto font-light leading-relaxed">
+            <p className="font-body mt-4 text-sm sm:text-base text-neutral-300 max-w-2xl mx-auto font-normal leading-relaxed">
               When a car or two-wheeler faces a breakdown, confusion and endless queueing cost critical hours. AutoCare Pulse AI analyzes customer photos, determines whether to dispatch immediate roadside rescue or guide to nearby authorized service centers, and gives subscribed Priority Customers accelerated resolution.
             </p>
           </div>
@@ -395,10 +401,10 @@ export default function Landing() {
               <div>
                 <div className="flex items-center justify-between pb-6 border-b border-white/[0.06]">
                   <div>
-                    <span className="font-heading text-[10px] font-bold tracking-[0.25em] uppercase text-neutral-500">
+                    <span className="font-heading text-[10px] font-bold tracking-[0.2em] uppercase text-neutral-400">
                       CONVENTIONAL EXPERIENCE
                     </span>
-                    <h3 className="font-heading font-black text-xl sm:text-2xl uppercase tracking-tight text-neutral-300 mt-1">
+                    <h3 className="font-heading font-bold text-lg sm:text-xl uppercase tracking-tight text-neutral-200 mt-1">
                       The Roadside Ordeal
                     </h3>
                   </div>
@@ -449,10 +455,10 @@ export default function Landing() {
               <div>
                 <div className="flex items-center justify-between pb-6 border-b border-white/[0.06]">
                   <div>
-                    <span className="font-heading text-[10px] font-bold tracking-[0.25em] uppercase text-[#00F0FF]">
+                    <span className="font-heading text-[10px] font-bold tracking-[0.2em] uppercase text-[#00F0FF]">
                       CONNECTED TELEMATICS &bull; AI TRIAGE
                     </span>
-                    <h3 className="font-heading font-black text-xl sm:text-2xl uppercase tracking-tight text-white mt-1">
+                    <h3 className="font-heading font-bold text-lg sm:text-xl uppercase tracking-tight text-white mt-1">
                       The AutoCare Pulse Solution
                     </h3>
                   </div>
@@ -520,13 +526,13 @@ export default function Landing() {
         <div className="relative z-10 max-w-6xl mx-auto w-full my-auto">
           {/* Header */}
           <div className="text-center mb-16">
-            <p className="font-heading text-xs font-semibold tracking-[0.25em] uppercase text-[#00F0FF] mb-3">
+            <p className="font-heading text-[11px] font-semibold tracking-[0.2em] uppercase text-[#00F0FF] mb-2.5">
               SIMPLE 4-STEP LOOP
             </p>
-            <h2 className="font-heading font-black text-3xl sm:text-5xl md:text-6xl uppercase tracking-[0.08em] text-white">
+            <h2 className="font-heading font-bold text-2xl sm:text-3xl md:text-4xl uppercase tracking-[0.03em] text-white">
               HOW AUTOCARE PULSE WORKS
             </h2>
-            <p className="mt-4 text-xs sm:text-sm text-neutral-400 max-w-xl mx-auto font-light leading-relaxed">
+            <p className="font-body mt-3 text-sm text-neutral-400 max-w-xl mx-auto font-normal leading-relaxed">
               From roadside photo capture to authorized dealer sign-off — an intelligent loop designed for speed, clarity, and prioritized care.
             </p>
           </div>
@@ -542,10 +548,10 @@ export default function Landing() {
                   </span>
                   <Camera className="h-5 w-5 text-[#00F0FF]" />
                 </div>
-                <h3 className="font-heading font-bold text-lg text-white uppercase tracking-wide">
+                <h3 className="font-heading font-bold text-base sm:text-lg text-white tracking-normal">
                   Photo &amp; Voice Intake
                 </h3>
-                <p className="mt-3 text-xs text-neutral-400 font-light leading-relaxed">
+                <p className="font-body mt-2.5 text-xs text-neutral-400 font-normal leading-relaxed">
                   Snap a photo of the vehicle issue (car or bike) or record a voice note. Whisper AI &amp; computer vision ingest visual damage and symptom descriptions in seconds.
                 </p>
               </div>
@@ -563,10 +569,10 @@ export default function Landing() {
                   </span>
                   <Cpu className="h-5 w-5 text-[#00F0FF]" />
                 </div>
-                <h3 className="font-heading font-bold text-lg text-white uppercase tracking-wide">
+                <h3 className="font-heading font-bold text-base sm:text-lg text-white tracking-normal">
                   AI Triage &amp; Decision
                 </h3>
-                <p className="mt-3 text-xs text-neutral-400 font-light leading-relaxed">
+                <p className="font-body mt-2.5 text-xs text-neutral-400 font-normal leading-relaxed">
                   AI chooses the optimal path: dispatches Immediate Dealer Rescue if non-drivable, or recommends nearby authorized service centers with reserved bays if drivable.
                 </p>
               </div>
@@ -584,10 +590,10 @@ export default function Landing() {
                   </span>
                   <Wrench className="h-5 w-5 text-[#E63946]" />
                 </div>
-                <h3 className="font-heading font-bold text-lg text-white uppercase tracking-wide">
+                <h3 className="font-heading font-bold text-base sm:text-lg text-white tracking-normal">
                   Dealer Handshake
                 </h3>
-                <p className="mt-3 text-xs text-neutral-400 font-light leading-relaxed">
+                <p className="font-body mt-2.5 text-xs text-neutral-400 font-normal leading-relaxed">
                   Diagnostics route straight to the dealership console. Subscribed Priority Customers flash at the top of the dealer's VIP queue for immediate technician allocation.
                 </p>
               </div>
@@ -605,10 +611,10 @@ export default function Landing() {
                   </span>
                   <Clock className="h-5 w-5 text-[#E63946]" />
                 </div>
-                <h3 className="font-heading font-bold text-lg text-white uppercase tracking-wide">
+                <h3 className="font-heading font-bold text-base sm:text-lg text-white tracking-normal">
                   Rapid Resolution
                 </h3>
-                <p className="mt-3 text-xs text-neutral-400 font-light leading-relaxed">
+                <p className="font-body mt-2.5 text-xs text-neutral-400 font-normal leading-relaxed">
                   Track live recovery GPS and workshop bay milestones, chat with mechanics directly, and experience accelerated turnaround under strict SLA completion.
                 </p>
               </div>
@@ -645,13 +651,13 @@ export default function Landing() {
         <div className="relative z-10 max-w-6xl mx-auto w-full my-auto">
           {/* Header */}
           <div className="text-center mb-16">
-            <p className="font-heading text-xs font-semibold tracking-[0.25em] uppercase text-[#00F0FF] mb-3">
+            <p className="font-heading text-[11px] font-semibold tracking-[0.2em] uppercase text-[#00F0FF] mb-2.5">
               INTELLIGENT DECISION ENGINE &bull; NATIONWIDE VIP SCALE
             </p>
-            <h2 className="font-heading font-black text-3xl sm:text-5xl md:text-6xl uppercase tracking-[0.08em] text-white">
+            <h2 className="font-heading font-bold text-2xl sm:text-3xl md:text-4xl uppercase tracking-[0.03em] text-white">
               AI TRIAGE &amp; PRIORITY SUBSCRIPTION
             </h2>
-            <p className="mt-4 text-xs sm:text-sm text-neutral-400 max-w-2xl mx-auto font-light leading-relaxed">
+            <p className="font-body mt-3 text-sm text-neutral-400 max-w-2xl mx-auto font-normal leading-relaxed">
               How AutoCare Pulse analyzes car and bike issues via image or voice, calculates the optimal customer outcome, and delivers accelerated dealer resolution for millions of vehicle owners.
             </p>
           </div>
@@ -663,10 +669,10 @@ export default function Landing() {
               <div>
                 <div className="flex items-center justify-between pb-6 border-b border-white/[0.06]">
                   <div>
-                    <span className="font-heading text-[10px] font-bold tracking-[0.25em] uppercase text-[#00F0FF]">
+                    <span className="font-heading text-[10px] font-bold tracking-[0.2em] uppercase text-[#00F0FF]">
                       MULTIMODAL DIAGNOSTIC ENGINE
                     </span>
-                    <h3 className="font-heading font-black text-xl sm:text-2xl uppercase tracking-tight text-white mt-1">
+                    <h3 className="font-heading font-bold text-lg sm:text-xl uppercase tracking-tight text-white mt-1">
                       Intelligent AI Triage Working
                     </h3>
                   </div>
@@ -721,10 +727,10 @@ export default function Landing() {
               <div>
                 <div className="flex items-center justify-between pb-6 border-b border-white/[0.06]">
                   <div>
-                    <span className="font-heading text-[10px] font-bold tracking-[0.25em] uppercase text-[#E63946]">
+                    <span className="font-heading text-[10px] font-bold tracking-[0.2em] uppercase text-[#E63946]">
                       NATIONWIDE SCALE (LAKHS &amp; CRORES OF VEHICLES)
                     </span>
-                    <h3 className="font-heading font-black text-xl sm:text-2xl uppercase tracking-tight text-white mt-1">
+                    <h3 className="font-heading font-bold text-lg sm:text-xl uppercase tracking-tight text-white mt-1">
                       Priority Customer Subscription
                     </h3>
                   </div>
@@ -796,13 +802,13 @@ export default function Landing() {
         <div className="relative z-10 max-w-6xl mx-auto w-full my-auto">
           {/* Header */}
           <div className="text-center mb-16">
-            <p className="font-heading text-xs font-semibold tracking-[0.25em] uppercase text-neutral-400 mb-3">
+            <p className="font-heading text-[11px] font-semibold tracking-[0.2em] uppercase text-[#00F0FF] mb-2.5">
               TWO POWERFUL SIDES
             </p>
-            <h2 className="font-heading font-black text-3xl sm:text-5xl md:text-6xl uppercase tracking-[0.08em] text-white">
+            <h2 className="font-heading font-bold text-2xl sm:text-3xl md:text-4xl uppercase tracking-[0.03em] text-white">
               BUILT FOR DRIVERS &amp; DEALERS
             </h2>
-            <p className="mt-4 text-xs sm:text-sm text-neutral-400 max-w-xl mx-auto font-light leading-relaxed">
+            <p className="font-body mt-3 text-sm text-neutral-400 max-w-xl mx-auto font-normal leading-relaxed">
               AutoCare Pulse provides tailored tools for both vehicle owners on the road and dealership technicians in the workshop.
             </p>
           </div>
@@ -814,10 +820,10 @@ export default function Landing() {
               <div>
                 <div className="flex items-center justify-between pb-6 border-b border-white/[0.06]">
                   <div>
-                    <span className="font-heading text-[10px] font-bold tracking-[0.25em] uppercase text-neutral-400">
+                    <span className="font-heading text-[10px] font-bold tracking-[0.2em] uppercase text-neutral-400">
                       END USER APPLICATION
                     </span>
-                    <h3 className="font-heading font-bold text-2xl uppercase tracking-tight text-white mt-1">
+                    <h3 className="font-heading font-bold text-xl uppercase tracking-tight text-white mt-1">
                       Driver Incident Portal
                     </h3>
                   </div>
@@ -880,10 +886,10 @@ export default function Landing() {
               <div>
                 <div className="flex items-center justify-between pb-6 border-b border-white/[0.06]">
                   <div>
-                    <span className="font-heading text-[10px] font-bold tracking-[0.25em] uppercase text-neutral-400">
+                    <span className="font-heading text-[10px] font-bold tracking-[0.2em] uppercase text-neutral-400">
                       WORKSHOP OPERATIONS
                     </span>
-                    <h3 className="font-heading font-bold text-2xl uppercase tracking-tight text-white mt-1">
+                    <h3 className="font-heading font-bold text-xl uppercase tracking-tight text-white mt-1">
                       Dealer Command Console
                     </h3>
                   </div>
@@ -969,13 +975,13 @@ export default function Landing() {
         <div className="relative z-10 max-w-6xl mx-auto w-full my-auto">
           {/* Header */}
           <div className="text-center mb-16">
-            <p className="font-heading text-xs font-semibold tracking-[0.25em] uppercase text-[#00F0FF] mb-3">
+            <p className="font-heading text-[11px] font-semibold tracking-[0.2em] uppercase text-[#00F0FF] mb-2.5">
               PRACTICAL ON-ROAD USE CASES
             </p>
-            <h2 className="font-heading font-black text-3xl sm:text-5xl md:text-6xl uppercase tracking-[0.08em] text-white">
+            <h2 className="font-heading font-bold text-2xl sm:text-3xl md:text-4xl uppercase tracking-[0.03em] text-white">
               WHEN DO DRIVERS USE THIS?
             </h2>
-            <p className="mt-4 text-xs sm:text-sm text-neutral-400 max-w-xl mx-auto font-light leading-relaxed">
+            <p className="font-body mt-3 text-sm text-neutral-400 max-w-xl mx-auto font-normal leading-relaxed">
               Three common situations where AutoCare Pulse replaces chaos with seamless execution.
             </p>
           </div>
@@ -988,7 +994,7 @@ export default function Landing() {
                 <span className="font-heading text-[10px] font-bold tracking-[0.2em] uppercase text-[#E63946]">
                   SCENARIO 01 &bull; HIGH SEVERITY
                 </span>
-                <h3 className="font-heading font-bold text-xl uppercase tracking-wide text-white mt-2">
+                <h3 className="font-heading font-bold text-base sm:text-lg tracking-normal text-white mt-2">
                   Highway Breakdown (Stranded Car or Bike)
                 </h3>
                 <p className="mt-3 text-xs text-neutral-300 font-light leading-relaxed">
@@ -1010,7 +1016,7 @@ export default function Landing() {
                 <span className="font-heading text-[10px] font-bold tracking-[0.2em] uppercase text-[#00F0FF]">
                   SCENARIO 02 &bull; DIAGNOSTIC
                 </span>
-                <h3 className="font-heading font-bold text-xl uppercase tracking-wide text-white mt-2">
+                <h3 className="font-heading font-bold text-base sm:text-lg tracking-normal text-white mt-2">
                   Warning Light &amp; Drivable Vehicle
                 </h3>
                 <p className="mt-3 text-xs text-neutral-300 font-light leading-relaxed">
@@ -1032,7 +1038,7 @@ export default function Landing() {
                 <span className="font-heading text-[10px] font-bold tracking-[0.2em] uppercase text-[#E63946]">
                   SCENARIO 03 &bull; VIP PRIORITY TIER
                 </span>
-                <h3 className="font-heading font-bold text-xl uppercase tracking-wide text-white mt-2">
+                <h3 className="font-heading font-bold text-base sm:text-lg tracking-normal text-white mt-2">
                   Priority Customer Damage Intake
                 </h3>
                 <p className="mt-3 text-xs text-neutral-300 font-light leading-relaxed">
@@ -1079,10 +1085,10 @@ export default function Landing() {
             {/* Left Column: Context, Problem vs Solution, Operational Specs */}
             <div className="lg:col-span-6 space-y-8">
               <div>
-                <p className="font-heading text-xs font-semibold tracking-[0.25em] uppercase text-neutral-400 mb-2">
+                <p className="font-heading text-[11px] font-semibold tracking-[0.2em] uppercase text-[#00F0FF] mb-2">
                   VERIFIED DEPLOYMENT
                 </p>
-                <h2 className="font-heading font-black text-4xl sm:text-5xl uppercase tracking-[0.08em] text-white">
+                <h2 className="font-heading font-bold text-2xl sm:text-3xl md:text-4xl uppercase tracking-[0.03em] text-white">
                   DIRECT COMMAND
                 </h2>
               </div>
@@ -1163,7 +1169,7 @@ export default function Landing() {
                   <p className="font-heading text-xs font-semibold tracking-[0.25em] uppercase text-neutral-400 mb-1">
                     WORKSHOP ACCESS
                   </p>
-                  <h3 className="font-heading font-black text-2xl sm:text-3xl uppercase tracking-tight text-white">
+                  <h3 className="font-heading font-bold text-xl sm:text-2xl uppercase tracking-tight text-white">
                     DEALER OPS CONSOLE
                   </h3>
                   <p className="text-xs text-neutral-400 font-light mt-1">
@@ -1257,6 +1263,36 @@ export default function Landing() {
 
       {/* Floating Mascot RAG Chatboard */}
       <RagChatbot />
+
+      {/* Interactive Live Font Preview Switcher */}
+      <div
+        data-testid="font-pair-preview-switcher"
+        className="fixed bottom-4 left-4 z-40 hidden sm:flex items-center gap-1.5 p-1.5 rounded-full bg-[#0c111d]/90 backdrop-blur-md border border-white/10 shadow-2xl text-[11px]"
+      >
+        <span className="px-2 text-neutral-400 font-medium select-none flex items-center gap-1">
+          <Type className="h-3.5 w-3.5 text-[#00F0FF]" /> Font Set:
+        </span>
+        <button
+          onClick={() => setActiveFontSet("sora")}
+          className={`px-3 py-1 rounded-full transition-all cursor-pointer ${
+            activeFontSet === "sora"
+              ? "bg-[#00F0FF]/20 text-[#00F0FF] border border-[#00F0FF]/40 font-semibold"
+              : "text-neutral-400 hover:text-white"
+          }`}
+        >
+          Set 1: Sora + DM Sans (Active)
+        </button>
+        <button
+          onClick={() => setActiveFontSet("urbanist")}
+          className={`px-3 py-1 rounded-full transition-all cursor-pointer ${
+            activeFontSet === "urbanist"
+              ? "bg-[#00F0FF]/20 text-[#00F0FF] border border-[#00F0FF]/40 font-semibold"
+              : "text-neutral-400 hover:text-white"
+          }`}
+        >
+          Set 2: Urbanist + Jakarta
+        </button>
+      </div>
 
       {/* Interactive Modals */}
       <DemoRequestModal isOpen={demoOpen} onClose={() => setDemoOpen(false)} />
