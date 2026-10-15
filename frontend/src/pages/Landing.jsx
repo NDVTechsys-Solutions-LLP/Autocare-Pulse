@@ -38,6 +38,12 @@ import { toast } from "sonner";
 import { api, dealerCfg } from "@/lib/apiClient";
 import heroBg from "@/assets/hero-bg.jpg";
 
+import DemoRequestModal from "@/components/DemoRequestModal";
+import GetACodeModal from "@/components/GetACodeModal";
+import AutoCareFooter from "@/components/AutoCareFooter";
+import RagChatbot from "@/components/RagChatbot";
+import LegalModal from "@/components/LegalModal";
+
 const TELEMATICS_IMG =
   "https://images.unsplash.com/photo-1694889648476-3777d917b91c?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA3MDB8MHwxfHNlYXJjaHwzfHxlbGVjdHJpYyUyMGNhciUyMGRhc2hib2FyZCUyMHRlY2hub2xvZ3l8ZW58MHx8fHwxNzg5NTAzMjk4fDA&ixlib=rb-4.1.0&q=85";
 const WORKSHOP_IMG =
@@ -50,6 +56,9 @@ const DIAGNOSTIC_IMG =
 export default function Landing() {
   const navigate = useNavigate();
   const [dealerOpen, setDealerOpen] = useState(false);
+  const [demoOpen, setDemoOpen] = useState(false);
+  const [codeOpen, setCodeOpen] = useState(false);
+  const [legalDoc, setLegalDoc] = useState(null);
   const [email, setEmail] = useState("ndvtechsys.solutions@gmail.com");
   const [password, setPassword] = useState("DealerPass123!");
   const [busy, setBusy] = useState(false);
@@ -93,55 +102,95 @@ export default function Landing() {
       {/* =========================================================================
           FIXED MINIMALIST NAVIGATION
           ========================================================================= */}
-      <header className="fixed top-0 inset-x-0 z-50 flex items-center justify-between px-6 py-6 md:px-14 bg-[#090a0d]/85 backdrop-blur-md border-b border-white/[0.04]">
-        {/* Brand Mark - Logo with Red Squircle & Cyan Pulse */}
-        <div
-          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-          className="cursor-pointer flex items-center gap-3 select-none hover:opacity-90 transition-opacity"
-        >
-          <div className="grid h-9 w-9 place-items-center rounded-xl bg-[#E63946] shadow-[0_0_18px_rgba(230,57,70,0.45)] shrink-0">
-            <Activity className="h-5 w-5 text-white" strokeWidth={2.5} />
+      {/* =========================================================================
+          FLOATING ENTERPRISE NAVBAR (Matches Demo Reference Alignment & Placement)
+          ========================================================================= */}
+      <header className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-7xl">
+        <div className="rounded-full bg-[#0c111d]/90 backdrop-blur-md border border-white/10 px-4 sm:px-6 py-2.5 flex items-center justify-between shadow-2xl">
+          {/* Left: Brand Mark */}
+          <div
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            className="cursor-pointer flex items-center gap-2.5 select-none hover:opacity-90 transition-opacity shrink-0"
+          >
+            <div className="grid h-8 w-8 place-items-center rounded-full bg-[#e60012] shrink-0">
+              <Activity className="h-4 w-4 text-white" strokeWidth={2.5} />
+            </div>
+            <span className="font-heading font-black text-sm sm:text-base tracking-tight text-white uppercase">
+              AUTOCARE<span className="text-[#e60012]">PULSE</span>
+            </span>
           </div>
-          <span className="font-heading font-black text-xl tracking-tight text-white uppercase">
-            AUTOCARE<span className="text-[#00F0FF]">PULSE</span>
-          </span>
-        </div>
 
-        {/* Navigation Links */}
-        <nav className="flex items-center gap-5 md:gap-7 font-heading text-xs uppercase tracking-[0.2em] text-neutral-400 font-medium">
-          <button onClick={() => scrollTo("section-01")} className="hover:text-white transition-colors hidden xl:block">
-            Overview
-          </button>
-          <button onClick={() => scrollTo("section-02")} className="hover:text-white transition-colors hidden lg:block">
-            The Problem
-          </button>
-          <button onClick={() => scrollTo("section-03")} className="hover:text-white transition-colors hidden md:block">
-            How It Works
-          </button>
-          <button onClick={() => scrollTo("section-04")} className="hover:text-white transition-colors hidden sm:block text-[#00F0FF]">
-            AI Triage &amp; VIP
-          </button>
-          <button onClick={() => scrollTo("section-05")} className="hover:text-white transition-colors hidden lg:block">
-            Portals
-          </button>
-          <button onClick={() => scrollTo("section-06")} className="hover:text-white transition-colors hidden md:block">
-            Scenarios
-          </button>
-          <button onClick={() => scrollTo("section-07")} className="hover:text-white transition-colors">
-            Access
-          </button>
+          {/* Center: Clean Navigation Links with active pill (Matches Reference) */}
+          <nav className="hidden lg:flex items-center gap-1 xl:gap-2 text-xs font-medium">
+            <button
+              onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+              className="px-3.5 py-1.5 rounded-full bg-white/10 text-white font-medium hover:bg-white/15 transition-colors cursor-pointer"
+            >
+              Home
+            </button>
+            <button
+              onClick={() => scrollTo("section-02")}
+              className="px-3 py-1.5 rounded-full text-neutral-400 hover:text-white transition-colors cursor-pointer"
+            >
+              Journey
+            </button>
+            <button
+              onClick={() => scrollTo("section-01")}
+              className="px-3 py-1.5 rounded-full text-neutral-400 hover:text-white transition-colors cursor-pointer"
+            >
+              Overview
+            </button>
+            <button
+              onClick={() => scrollTo("section-03")}
+              className="px-3 py-1.5 rounded-full text-neutral-400 hover:text-white transition-colors cursor-pointer"
+            >
+              Features
+            </button>
+            <button
+              onClick={() => scrollTo("section-04")}
+              className="px-3 py-1.5 rounded-full text-neutral-400 hover:text-white transition-colors cursor-pointer"
+            >
+              Workflow
+            </button>
+            <button
+              onClick={() => scrollTo("section-05")}
+              className="px-3 py-1.5 rounded-full text-neutral-400 hover:text-white transition-colors cursor-pointer"
+            >
+              FAQ
+            </button>
+          </nav>
 
-          {/* Dealer Login Modal Trigger */}
-          <Dialog open={dealerOpen} onOpenChange={setDealerOpen}>
-            <DialogTrigger asChild>
-              <button
-                data-testid="open-dealer-login"
-                className="text-white border border-white/20 px-4 py-1.5 rounded-full hover:bg-white hover:text-black transition-all duration-300 font-semibold"
-              >
-                Dealer Login
-              </button>
-            </DialogTrigger>
-            <DialogContent className="border-white/10 bg-[#0e1015] text-white max-w-md p-8 rounded-2xl shadow-2xl">
+          {/* Right: Action Buttons Group (Exact Placement from Reference Image) */}
+          <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+            {/* Request Demo Button - Solid Red Pill */}
+            <button
+              data-testid="nav-request-demo-btn"
+              onClick={() => setDemoOpen(true)}
+              className="bg-[#e60012] hover:bg-[#c80010] text-white px-4 sm:px-5 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer shadow-none"
+            >
+              Request Demo
+            </button>
+
+            {/* Get a Code Button - Outlined Pill */}
+            <button
+              data-testid="nav-get-code-btn"
+              onClick={() => setCodeOpen(true)}
+              className="border border-white/20 hover:border-white/40 hover:bg-white/5 text-white px-4 sm:px-5 py-2 rounded-full text-xs font-semibold tracking-wide transition-colors cursor-pointer hidden sm:block"
+            >
+              Get a Code
+            </button>
+
+            {/* Dealer Login Modal Trigger */}
+            <Dialog open={dealerOpen} onOpenChange={setDealerOpen}>
+              <DialogTrigger asChild>
+                <button
+                  data-testid="open-dealer-login"
+                  className="text-neutral-400 hover:text-white text-xs font-medium px-2 py-1.5 transition-colors cursor-pointer hidden md:block"
+                >
+                  Dealer
+                </button>
+              </DialogTrigger>
+              <DialogContent className="border-white/10 bg-[#0e1015] text-white max-w-md p-8 rounded-2xl shadow-2xl">
               <DialogHeader>
                 <div className="flex flex-col font-heading font-black text-white text-xs tracking-[0.25em] uppercase text-neutral-400 mb-2">
                   <span>WORKSHOP CONSOLE</span>
@@ -193,8 +242,9 @@ export default function Landing() {
               </form>
             </DialogContent>
           </Dialog>
-        </nav>
-      </header>
+        </div>
+      </div>
+    </header>
 
       {/* =========================================================================
           SECTION .01 — HERO (CREATIVE TELEMATICS PULSE BACKGROUND)
@@ -263,18 +313,18 @@ export default function Landing() {
             Instant photo analysis for cars &amp; bikes — guiding drivers to immediate dealer rescue or nearby authorized service centers with reserved bays.
           </motion.p>
 
-          {/* Dual Action Buttons */}
+          {/* Action Buttons */}
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.25 }}
-            className="mt-10 flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto"
+            className="mt-10 flex flex-wrap items-center justify-center gap-3 w-full sm:w-auto"
           >
             {/* Customer Google Login */}
             <button
               data-testid="google-login-btn"
               onClick={googleLogin}
-              className="group flex items-center justify-center gap-3 px-8 py-3.5 rounded-xl bg-white text-black font-heading font-bold text-xs uppercase tracking-[0.15em] hover:bg-neutral-200 transition-all duration-300 w-full sm:w-auto shadow-lg shadow-white/5"
+              className="group flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl bg-white text-black font-heading font-bold text-xs uppercase tracking-[0.12em] hover:bg-neutral-200 transition-all duration-300 w-full sm:w-auto shadow-md cursor-pointer"
             >
               <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
                 <path
@@ -294,16 +344,15 @@ export default function Landing() {
                   d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
                 />
               </svg>
-              <span>Driver Sign In (Google)</span>
-              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+              <span>Driver Sign In</span>
             </button>
 
             {/* Dealer Portal Direct Button */}
             <button
               onClick={() => setDealerOpen(true)}
-              className="px-8 py-3.5 rounded-xl border border-white/20 text-neutral-300 font-heading font-semibold text-xs uppercase tracking-[0.15em] hover:bg-white/[0.06] hover:text-white transition-all duration-300 w-full sm:w-auto"
+              className="px-5 py-3.5 rounded-xl border border-white/20 text-neutral-300 font-heading font-semibold text-xs uppercase tracking-[0.12em] hover:bg-white/[0.06] hover:text-white transition-all duration-300 w-full sm:w-auto cursor-pointer"
             >
-              Dealer Ops Console
+              Dealer Console
             </button>
           </motion.div>
         </div>
@@ -1185,7 +1234,7 @@ export default function Landing() {
             <div className="h-4 w-4 grid place-items-center rounded bg-[#E63946]">
               <Activity className="h-2.5 w-2.5 text-white" strokeWidth={2.5} />
             </div>
-            <span>AUTOCARE<span className="text-[#00F0FF]">PULSE</span> &bull; ALL RIGHTS RESERVED</span>
+            <span>AUTOCARE<span className="text-[#00F0FF]">PULSE</span> &bull; TELEMETRY PLATFORM</span>
           </div>
 
           <div
@@ -1197,6 +1246,32 @@ export default function Landing() {
           </div>
         </div>
       </section>
+
+      {/* Enterprise Multi-Column Footer Matching TripShield Reference */}
+      <AutoCareFooter
+        onOpenDemo={() => setDemoOpen(true)}
+        onOpenGetCode={() => setCodeOpen(true)}
+        onDealerLogin={() => {
+          const el = document.getElementById("section-07");
+          if (el) el.scrollIntoView({ behavior: "smooth" });
+          else setDealerOpen(true);
+        }}
+        onDriverLogin={googleLogin}
+        onOpenLegal={(type) => setLegalDoc(type)}
+      />
+
+      {/* Floating Mascot RAG Chatboard */}
+      <RagChatbot />
+
+      {/* Interactive Modals */}
+      <DemoRequestModal isOpen={demoOpen} onClose={() => setDemoOpen(false)} />
+      <GetACodeModal isOpen={codeOpen} onClose={() => setCodeOpen(false)} />
+      <LegalModal
+        isOpen={Boolean(legalDoc)}
+        onClose={() => setLegalDoc(null)}
+        docType={legalDoc || "privacy"}
+      />
     </div>
   );
 }
+

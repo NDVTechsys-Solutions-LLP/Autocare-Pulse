@@ -1418,6 +1418,358 @@ async def health():
     return {"status": "ok", "health_check_enabled": enable_hc, "time": iso(now_utc())}
 
 
+# ============================================================================
+# Admin Notification, Demo Requests, Quote Inquiries, & RAG Support
+# ============================================================================
+ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL") or os.environ.get("CONTACT_REQUEST_EMAIL") or "customer@ndvtexas.com"
+
+
+class DemoRequestIn(BaseModel):
+    name: str = ""
+    email: str = ""
+    phone: Optional[str] = ""
+    organization: Optional[str] = ""
+    description: Optional[str] = ""
+    preferred_date: Optional[str] = ""
+    honeypot: Optional[str] = ""
+
+
+class ContactQuoteIn(BaseModel):
+    name: str
+    email: str
+    phone: Optional[str] = ""
+    subject: Optional[str] = "Get a Code"
+    description: str
+    preferred_contact: Optional[str] = "email"
+    honeypot: Optional[str] = ""
+
+
+class ReportQuestionIn(BaseModel):
+    question: str
+    category: Optional[str] = "General Support"
+    email: Optional[str] = ""
+    user_context: Optional[str] = "AutoCare Pulse Assistant"
+    honeypot: Optional[str] = ""
+
+
+async def send_admin_notification(*, to_email: str, subject: str, body_text: str, html_content: str) -> dict:
+    """
+    Attempts to dispatch outbound notification to admin (customer@ndvTexas.com).
+    Tries Resend, SendGrid, or internal send_email helper, recording the delivery status.
+    """
+    resend_key = os.environ.get("RESEND_API_KEY")
+    sendgrid_key = os.environ.get("SENDGRID_API_KEY")
+
+    if resend_key:
+        try:
+            async with httpx.AsyncClient(timeout=10) as client:
+                res = await client.post(
+                    "https://api.resend.com/emails",
+                    headers={"Authorization": f"Bearer {resend_key}", "Content-Type": "application/json"},
+                    json={
+                        "from": os.environ.get("SENDER_EMAIL", "notifications@autocarepulse.com"),
+                        "to": [to_email],
+                        "subject": subject,
+                        "text": body_text,
+                        "html": html_content,
+                    },
+                )
+            if res.status_code in (200, 201):
+                return {"sent": True, "provider": "resend", "data": res.json()}
+        except Exception as e:
+            logger.error(f"[EMAIL FAILED - Resend] {e}")
+
+    if sendgrid_key:
+        try:
+            async with httpx.AsyncClient(timeout=10) as client:
+                res = await client.post(
+                    "https://api.sendgrid.com/v3/mail/send",
+                    headers={"Authorization": f"Bearer {sendgrid_key}", "Content-Type": "application/json"},
+                    json={
+                        "personalizations": [{"to": [{"email": to_email}]}],
+                        "from": {"email": os.environ.get("SENDER_EMAIL", "notifications@autocarepulse.com")},
+                        "subject": subject,
+                        "content": [{"type": "text/html", "value": html_content}],
+                    },
+                )
+            if res.status_code in (200, 201, 202):
+                return {"sent": True, "provider": "sendgrid"}
+        except Exception as e:
+            logger.error(f"[EMAIL FAILED - SendGrid] {e}")
+
+    # Fallback to internal send_email helper
+    try:
+        await send_email(to=to_email, subject=subject, html=html_content)
+        return {"sent": True, "provider": "emergent_email"}
+    except Exception as e:
+        logger.info(f"[EMAIL DISPATCH STORED IN DB] Could not send via provider: {e}. Saved in MongoDB for admin ({to_email}).")
+        return {"sent": False, "provider": "mongodb_record", "error": str(e)}
+
+
+@api_router.post("/demo-request")
+async def submit_demo_request(payload: DemoRequestIn):
+    if payload.honeypot and payload.honeypot.strip():
+        return {"ok": True, "demo_id": "demo_bot_filtered", "message": "Demo request received!"}
+
+    name_clean = (payload.name or "").strip()
+    email_clean = (payload.email or "").strip().lower()
+    phone_clean = (payload.phone or "").strip()
+    if not name_clean or not email_clean:
+        raise HTTPException(status_code=400, detail="Name and email address are required.")
+
+    demo_id = f"demo_{uuid.uuid4().hex[:10]}"
+    org_clean = (payload.organization or "").strip()
+    desc_clean = (payload.description or "").strip()
+    date_clean = (payload.preferred_date or "").strip()
+
+    subject = f"[AutoCare Pulse Demo Request] {name_clean} ({org_clean or 'Individual'})"
+    body_text = (
+        f"NEW DEMO REQUEST - AUTOCARE PULSE\n"
+        f"==================================\n"
+        f"Name          : {name_clean}\n"
+        f"Work Email    : {email_clean}\n"
+        f"Phone         : {phone_clean}\n"
+        f"Organization  : {org_clean or 'N/A'}\n"
+        f"Preferred Date: {date_clean or 'Earliest available'}\n"
+        f"Description   : {desc_clean or 'None provided'}\n\n"
+        f"Forwarded automatically to admin: {ADMIN_EMAIL}\n"
+        f"Timestamp: {iso(now_utc())}"
+    )
+    html_content = (
+        f'<table role="presentation" width="100%" style="background-color:#090a0d;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif;padding:32px 16px;">'
+        f'<tr><td align="center">'
+        f'<table role="presentation" width="100%" style="max-width:580px;background-color:#0e1015;border:1px solid #1f293d;border-radius:12px;overflow:hidden;">'
+        f'<tr><td style="background-color:#E63946;padding:16px 24px;">'
+        f'<h1 style="margin:0;color:#ffffff;font-size:16px;font-weight:800;letter-spacing:1px;text-transform:uppercase;">'
+        f'AUTOCARE PULSE · DEMO REQUEST'
+        f'</h1></td></tr>'
+        f'<tr><td style="padding:24px 28px;color:#f1f5f9;font-size:14px;line-height:1.6;">'
+        f'<p style="margin-top:0;color:#94a3b8;">A new prospect has requested a product walkthrough:</p>'
+        f'<table role="presentation" width="100%" style="border-collapse:collapse;margin:16px 0;font-size:13px;">'
+        f'<tr><td style="padding:8px 0;color:#94a3b8;width:130px;font-weight:600;">Full Name:</td>'
+        f'<td style="padding:8px 0;color:#ffffff;font-weight:600;">{escape(name_clean)}</td></tr>'
+        f'<tr><td style="padding:8px 0;color:#94a3b8;font-weight:600;">Work Email:</td>'
+        f'<td style="padding:8px 0;color:#00F0FF;"><a href="mailto:{escape(email_clean)}" style="color:#00F0FF;text-decoration:none;">{escape(email_clean)}</a></td></tr>'
+        f'<tr><td style="padding:8px 0;color:#94a3b8;font-weight:600;">Phone:</td>'
+        f'<td style="padding:8px 0;color:#ffffff;">{escape(phone_clean)}</td></tr>'
+        f'<tr><td style="padding:8px 0;color:#94a3b8;font-weight:600;">Organization:</td>'
+        f'<td style="padding:8px 0;color:#ffffff;">{escape(org_clean) if org_clean else "Not specified"}</td></tr>'
+        f'<tr><td style="padding:8px 0;color:#94a3b8;font-weight:600;">Preferred Date:</td>'
+        f'<td style="padding:8px 0;color:#ffffff;">{escape(date_clean) if date_clean else "Earliest available"}</td></tr>'
+        f'<tr><td style="padding:8px 0;color:#94a3b8;font-weight:600;vertical-align:top;">Description / Notes:</td>'
+        f'<td style="padding:8px 0;color:#cbd5e1;">{escape(desc_clean) if desc_clean else "None provided"}</td></tr>'
+        f'</table>'
+        f'</td></tr>'
+        f'<tr><td style="background-color:#05070a;padding:12px 28px;border-top:1px solid #1f293d;color:#64748b;font-size:12px;">'
+        f'AutoCare Pulse Lead Dispatch · Delivered to {escape(ADMIN_EMAIL)}'
+        f'</td></tr>'
+        f'</table></td></tr></table>'
+    )
+
+    dispatch_res = await send_admin_notification(
+        to_email=ADMIN_EMAIL,
+        subject=subject,
+        body_text=body_text,
+        html_content=html_content,
+    )
+
+    record = {
+        "demo_id": demo_id,
+        "name": name_clean,
+        "email": email_clean,
+        "phone": phone_clean,
+        "organization": org_clean,
+        "preferred_date": date_clean,
+        "description": desc_clean,
+        "admin_email": ADMIN_EMAIL,
+        "email_dispatch": dispatch_res,
+        "status": "pending_admin_review",
+        "created_at": iso(now_utc()),
+    }
+    await db.demo_requests.insert_one(record)
+
+    return {
+        "ok": True,
+        "demo_id": demo_id,
+        "email_delivery": dispatch_res,
+        "message": f"Demo request received! Our team has notified the admin at {ADMIN_EMAIL} and will follow up with you promptly at {email_clean}.",
+    }
+
+
+@api_router.post("/contact-quote")
+@api_router.post("/get-a-code")
+async def submit_contact_quote(payload: ContactQuoteIn):
+    if payload.honeypot and payload.honeypot.strip():
+        return {"ok": True, "quote_id": "quote_bot_filtered", "message": "Inquiry received!"}
+
+    if not payload.name.strip() or not payload.email.strip() or not payload.description.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Name, email, and description of your problem/requirements are required.",
+        )
+
+    quote_id = f"quote_{uuid.uuid4().hex[:10]}"
+    name_clean = payload.name.strip()
+    email_clean = payload.email.strip().lower()
+    phone_clean = (payload.phone or "").strip()
+    subject_clean = (payload.subject or "Get a Code").strip()
+    desc_clean = payload.description.strip()
+    mode_clean = (payload.preferred_contact or "email").strip()
+
+    email_subject = f"[AutoCare Pulse Inquiry] {subject_clean} — {name_clean}"
+    body_text = (
+        f"NEW QUERY / GET A CODE INQUIRY\n"
+        f"==============================\n"
+        f"Name          : {name_clean}\n"
+        f"Email         : {email_clean}\n"
+        f"Phone         : {phone_clean or 'N/A'}\n"
+        f"Subject       : {subject_clean}\n"
+        f"Preferred Mode: {mode_clean}\n\n"
+        f"PROBLEM / QUERY DESCRIPTION:\n"
+        f"{desc_clean}\n\n"
+        f"Forwarded automatically to admin: {ADMIN_EMAIL}\n"
+        f"Timestamp: {iso(now_utc())}"
+    )
+    html_content = (
+        f'<table role="presentation" width="100%" style="background-color:#090a0d;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif;padding:32px 16px;">'
+        f'<tr><td align="center">'
+        f'<table role="presentation" width="100%" style="max-width:580px;background-color:#0e1015;border:1px solid #1f293d;border-radius:12px;overflow:hidden;">'
+        f'<tr><td style="background-color:#00F0FF;padding:16px 24px;">'
+        f'<h1 style="margin:0;color:#090a0d;font-size:16px;font-weight:900;letter-spacing:1px;text-transform:uppercase;">'
+        f'AUTOCARE PULSE · CLIENT INQUIRY / GET A CODE'
+        f'</h1></td></tr>'
+        f'<tr><td style="padding:24px 28px;color:#f1f5f9;font-size:14px;line-height:1.6;">'
+        f'<p style="margin-top:0;color:#94a3b8;">A customer or dealership representative has submitted a query:</p>'
+        f'<table role="presentation" width="100%" style="border-collapse:collapse;margin:16px 0;font-size:13px;">'
+        f'<tr><td style="padding:8px 0;color:#94a3b8;width:130px;font-weight:600;">Client Name:</td>'
+        f'<td style="padding:8px 0;color:#ffffff;font-weight:600;">{escape(name_clean)}</td></tr>'
+        f'<tr><td style="padding:8px 0;color:#94a3b8;font-weight:600;">Email:</td>'
+        f'<td style="padding:8px 0;color:#00F0FF;"><a href="mailto:{escape(email_clean)}" style="color:#00F0FF;text-decoration:none;">{escape(email_clean)}</a></td></tr>'
+        f'<tr><td style="padding:8px 0;color:#94a3b8;font-weight:600;">Phone:</td>'
+        f'<td style="padding:8px 0;color:#ffffff;">{escape(phone_clean) if phone_clean else "Not provided"}</td></tr>'
+        f'<tr><td style="padding:8px 0;color:#94a3b8;font-weight:600;">Subject:</td>'
+        f'<td style="padding:8px 0;color:#ffffff;font-weight:600;">{escape(subject_clean)}</td></tr>'
+        f'<tr><td style="padding:8px 0;color:#94a3b8;font-weight:600;">Preferred Contact:</td>'
+        f'<td style="padding:8px 0;color:#ffffff;">{escape(mode_clean)}</td></tr>'
+        f'<tr><td style="padding:8px 0;color:#94a3b8;font-weight:600;vertical-align:top;">Query Description:</td>'
+        f'<td style="padding:8px 0;color:#cbd5e1;white-space:pre-wrap;">{escape(desc_clean)}</td></tr>'
+        f'</table>'
+        f'</td></tr>'
+        f'<tr><td style="background-color:#05070a;padding:12px 28px;border-top:1px solid #1f293d;color:#64748b;font-size:12px;">'
+        f'AutoCare Pulse Inquiry Dispatch · Delivered to {escape(ADMIN_EMAIL)}'
+        f'</td></tr>'
+        f'</table></td></tr></table>'
+    )
+
+    dispatch_res = await send_admin_notification(
+        to_email=ADMIN_EMAIL,
+        subject=email_subject,
+        body_text=body_text,
+        html_content=html_content,
+    )
+
+    record = {
+        "quote_id": quote_id,
+        "name": name_clean,
+        "email": email_clean,
+        "phone": phone_clean,
+        "subject": subject_clean,
+        "description": desc_clean,
+        "preferred_contact": mode_clean,
+        "admin_email": ADMIN_EMAIL,
+        "email_dispatch": dispatch_res,
+        "status": "pending_admin_response",
+        "created_at": iso(now_utc()),
+    }
+    await db.contact_quotes.insert_one(record)
+
+    return {
+        "ok": True,
+        "quote_id": quote_id,
+        "email_delivery": dispatch_res,
+        "message": f"Your inquiry has been submitted! An admin at {ADMIN_EMAIL} will review your query and reply to {email_clean}.",
+    }
+
+
+@api_router.post("/support/report-question")
+async def report_unanswered_question(payload: ReportQuestionIn):
+    if payload.honeypot and payload.honeypot.strip():
+        return {"ok": True, "report_id": "inq_bot_filtered", "message": "Question received!"}
+
+    if not payload.question.strip():
+        raise HTTPException(status_code=400, detail="Question cannot be empty.")
+
+    report_id = f"inq_{uuid.uuid4().hex[:10]}"
+    question_clean = payload.question.strip()
+    category_clean = (payload.category or "General Support").strip()
+    email_clean = (payload.email or "").strip().lower()
+    source_clean = (payload.user_context or "AutoCare Pulse Assistant").strip()
+
+    subject = f"[AutoCare Pulse Assistant] Reported Question: {question_clean[:40]}..."
+    body_text = (
+        f"NEW USER QUESTION REPORTED FROM ASSISTANT\n"
+        f"=========================================\n"
+        f"Report ID   : {report_id}\n"
+        f"Question    : {question_clean}\n"
+        f"Category    : {category_clean}\n"
+        f"User Email  : {email_clean or 'Not provided'}\n"
+        f"Source      : {source_clean}\n"
+        f"Timestamp   : {iso(now_utc())}\n\n"
+        f"Forwarded automatically to admin: {ADMIN_EMAIL}"
+    )
+    html_content = (
+        f'<table role="presentation" width="100%" style="background-color:#090a0d;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif;padding:32px 16px;">'
+        f'<tr><td align="center">'
+        f'<table role="presentation" width="100%" style="max-width:580px;background-color:#0e1015;border:1px solid #1f293d;border-radius:12px;overflow:hidden;">'
+        f'<tr><td style="background-color:#E63946;padding:16px 24px;">'
+        f'<h1 style="margin:0;color:#ffffff;font-size:16px;font-weight:800;letter-spacing:1px;text-transform:uppercase;">'
+        f'AUTOCARE PULSE · USER QUESTION REPORT'
+        f'</h1></td></tr>'
+        f'<tr><td style="padding:24px 28px;color:#f1f5f9;font-size:14px;line-height:1.6;">'
+        f'<p style="margin-top:0;color:#94a3b8;">A user submitted an unlisted question via the interactive assistant:</p>'
+        f'<table role="presentation" width="100%" style="border-collapse:collapse;margin:16px 0;font-size:13px;">'
+        f'<tr><td style="padding:8px 0;color:#94a3b8;width:130px;font-weight:600;">Question:</td>'
+        f'<td style="padding:8px 0;color:#ffffff;font-weight:600;font-size:14px;">{escape(question_clean)}</td></tr>'
+        f'<tr><td style="padding:8px 0;color:#94a3b8;font-weight:600;">Category:</td>'
+        f'<td style="padding:8px 0;color:#cbd5e1;">{escape(category_clean)}</td></tr>'
+        f'<tr><td style="padding:8px 0;color:#94a3b8;font-weight:600;">User Email:</td>'
+        f'<td style="padding:8px 0;color:#00F0FF;">{escape(email_clean) if email_clean else "Not provided"}</td></tr>'
+        f'</table>'
+        f'</td></tr>'
+        f'<tr><td style="background-color:#05070a;padding:12px 28px;border-top:1px solid #1f293d;color:#64748b;font-size:12px;">'
+        f'AutoCare Pulse Knowledge Support · Delivered to {escape(ADMIN_EMAIL)}'
+        f'</td></tr>'
+        f'</table></td></tr></table>'
+    )
+
+    dispatch_res = await send_admin_notification(
+        to_email=ADMIN_EMAIL,
+        subject=subject,
+        body_text=body_text,
+        html_content=html_content,
+    )
+
+    record = {
+        "report_id": report_id,
+        "question": question_clean,
+        "category": category_clean,
+        "email": email_clean,
+        "user_context": source_clean,
+        "admin_email": ADMIN_EMAIL,
+        "email_dispatch": dispatch_res,
+        "status": "pending_admin_review",
+        "created_at": iso(now_utc()),
+    }
+    await db.unanswered_questions.insert_one(record)
+
+    return {
+        "ok": True,
+        "report_id": report_id,
+        "email_delivery": dispatch_res,
+        "message": f"Question received! Our team has been notified at {ADMIN_EMAIL}.",
+    }
+
+
 app.include_router(api_router)
 raw_origins = [o.strip(' "\'') for o in os.environ.get('CORS_ORIGINS', '*').split(',') if o.strip(' "\'')]
 app.add_middleware(
