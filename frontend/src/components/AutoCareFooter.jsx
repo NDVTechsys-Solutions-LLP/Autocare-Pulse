@@ -139,10 +139,10 @@ export default function AutoCareFooter({
                 </li>
                 <li>
                   <button
-                    onClick={onOpenGetCode}
+                    onClick={onOpenGetQuote || onOpenGetCode}
                     className="text-neutral-200 hover:text-white font-semibold transition-colors cursor-pointer text-left inline-flex items-center gap-1"
                   >
-                    Get a Code
+                    Get a Quote
                   </button>
                 </li>
                 <li>

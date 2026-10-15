@@ -116,7 +116,7 @@ export default function Landing() {
               <Activity className="h-4 w-4 text-white" strokeWidth={2.5} />
             </div>
             <span className="font-heading font-black text-sm sm:text-base tracking-tight text-white uppercase">
-              AUTOCARE<span className="text-[#e60012]">PULSE</span>
+              AUTOCARE<span className="text-[#00F0FF]">PULSE</span>
             </span>
           </div>
 
@@ -171,13 +171,13 @@ export default function Landing() {
               Request Demo
             </button>
 
-            {/* Get a Code Button - Outlined Pill */}
+            {/* Get a Quote Button - Outlined Pill */}
             <button
-              data-testid="nav-get-code-btn"
+              data-testid="nav-get-quote-btn"
               onClick={() => setCodeOpen(true)}
-              className="border border-white/20 hover:border-white/40 hover:bg-white/5 text-white px-4 sm:px-5 py-2 rounded-full text-xs font-semibold tracking-wide transition-colors cursor-pointer hidden sm:block"
+              className="border border-white/20 hover:border-[#00F0FF] text-white hover:text-[#00F0FF] px-4 sm:px-5 py-2 rounded-full text-xs font-semibold tracking-wide transition-colors cursor-pointer hidden sm:block"
             >
-              Get a Code
+              Get a Quote
             </button>
 
             {/* Dealer Login Modal Trigger */}
